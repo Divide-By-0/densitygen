@@ -86,12 +86,17 @@ def response_to_payload(
         cands.append(d)
 
     prov = resp.model_provenance.model_dump()
+    # `billing` was added to ScreeningResponse for hosted-UMA cost tracking; pass
+    # it through when present (None under the descriptor backend) so the UI can
+    # surface compute spend without the viz needing to know how it's computed.
+    billing = getattr(resp, "billing", None)
 
     return {
         "meta": {
             "mode": mode,                       # "screen" | "design"
             "film": resp.film,
             "co_reactant": resp.co_reactant,
+            "billing": (billing.model_dump() if billing is not None else None),
             "temperature_max_c": (request.temperature_max_c if request else None),
             "forbidden_elements": (list(request.forbidden_elements) if request else []),
             "surface": (request.surface if request else None),

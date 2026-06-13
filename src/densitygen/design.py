@@ -20,7 +20,13 @@ from dataclasses import dataclass
 from densitygen.chem import ATOMIC_WEIGHT, Composition, parse_formula
 from densitygen.data import KNOWN_PRECURSORS, lookup_precursor
 from densitygen.schemas import CandidateResult, ModelProvenance, ScreeningResponse
-from densitygen.screen import build_scorecard, compute_uma_signals, resolve_film
+from densitygen.screen import (
+    billing_from_backend,
+    build_scorecard,
+    compute_uma_signals,
+    resolve_film,
+    _simulation_calls,
+)
 from densitygen.compute import get_backend
 
 
@@ -164,7 +170,10 @@ def design(*, film: str, co_reactant: str | None = None, temperature_max_c: floa
         for card in results[:uma_top_k]:
             try:
                 comp = parse_formula(card.formula)
-                ml_e, ads, notes = compute_uma_signals(card.name, comp, film_obj, backend)
+                call_start = len(getattr(backend, "calls", []))
+                ml_e, ads, notes, ml_backend = compute_uma_signals(
+                    card.name, comp, film_obj, backend)
+                ml_calls = _simulation_calls(backend, call_start)
                 warnings.extend(notes)
                 if ml_e is None and ads is None:
                     continue
@@ -174,18 +183,25 @@ def design(*, film: str, co_reactant: str | None = None, temperature_max_c: floa
                     name=card.name, comp=comp, known=known, film=film_obj,
                     co_reactant=co_reactant, temperature_max_c=temperature_max_c,
                     forbidden_elements=forbidden_elements, ads_energy=ads,
-                    ml_energy_ev=ml_e, used_uma=True, origin="proposed",
+                    ml_energy_ev=ml_e, used_uma=True, ml_backend=ml_backend,
+                    ml_calls=ml_calls, origin="proposed",
                     is_known=card.is_known_recipe)
                 results[results.index(card)] = rescored
             except Exception as e:
                 warnings.append(f"{card.name}: UMA escalation failed ({e}).")
         results.sort(key=lambda r: r.overall_score, reverse=True)
 
+    backend_label = {
+        "LocalUMA": "uma-local",
+        "LocalMACE": "mace-local",
+        "LocalCHGNet": "chgnet-local",
+        "MLPotentialClient": "uma-replicate",
+    }.get(type(backend).__name__, "ml-potential") if used_uma else "local-descriptors"
     prov = ModelProvenance(
-        compute_backend=("uma-local" if (used_uma and hasattr(backend, "energy_atoms"))
-                         else "uma-replicate" if used_uma else "local-descriptors"),
+        compute_backend=backend_label,
         model_name=getattr(backend, "model", None) if used_uma else None,
         notes=(f"Generated {len(proposals)} candidates; descriptor-triaged to "
-               f"{len(results)}" + (f", UMA-confirmed top {uma_top_k}." if used_uma else ".")))
+               f"{len(results)}" + (f", ML-confirmed top {uma_top_k}." if used_uma else ".")))
     return ScreeningResponse(film=film, co_reactant=co_reactant, ranked_candidates=results,
-                             warnings=warnings, model_provenance=prov)
+                             warnings=warnings, model_provenance=prov,
+                             billing=billing_from_backend(backend))

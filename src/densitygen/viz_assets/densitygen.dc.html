@@ -87,34 +87,35 @@ body{background:#FAFAF8;color:#3C3B38;font-family:'Inter',system-ui,sans-serif;f
             <div style="background:#fff;padding:13px 15px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#9B9A92">Hard-failed gate</div><div style="font-family:'JetBrains Mono',monospace;font-size:25px;font-weight:600;color:{{ failColor }};margin-top:7px">{{ nHardFail }}</div><div style="font-size:11px;color:#9B9A92;margin-top:5px">no film element</div></div>
           </div>
 
-          <!-- TABLE -->
+          <!-- RANKED GRID -->
+          <!-- NOTE: div-grid, not <table>. The DC runtime boots from the inline
+               <x-dc> DOM, and the browser's HTML parser foster-parents <sc-for>
+               OUT of a <table>, so a real table renders one empty row when opened
+               from file:// (where the runtime's recovery re-fetch is CORS-blocked).
+               Divs are immune to foster-parenting, so the bundle works offline. -->
           <div style="border:1px solid #E6E4DF;border-radius:2px;overflow:auto;background:#fff">
-            <table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:1080px">
-              <thead>
-                <tr style="background:#FAFAF8">
-                  <th style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 10px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">#</th>
-                  <th onClick="{{ sort.name }}" style="cursor:pointer;text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">Precursor {{ ind.name }}</th>
-                  <th style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">Formula</th>
-                  <th onClick="{{ sort.mw }}" style="cursor:pointer;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">MW {{ ind.mw }}</th>
-                  <th style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 8px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">7-axis scorecard</th>
-                  <th style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">Verdict</th>
-                  <th onClick="{{ sort.overall }}" style="cursor:pointer;text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">Overall {{ ind.overall }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
-                  <tr onClick="{{ r.onSelect }}" style="cursor:pointer;background:{{ r.rowBg }};box-shadow:{{ r.rowBar }}">
-                    <td style="text-align:right;font-family:'JetBrains Mono',monospace;color:#9B9A92;padding:8px 10px;border-bottom:1px solid #F0EEEA">{{ r.rank }}</td>
-                    <td style="padding:8px 12px;border-bottom:1px solid #F0EEEA"><span style="font-weight:600;color:#191917;font-size:13px">{{ r.name }}</span><sc-if value="{{ r.is_known_recipe }}" hint-placeholder-val="{{ true }}"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#92400E;background:#FBF0E2;border:1px solid #EBDCC2;border-radius:2px;padding:1px 4px;margin-left:7px;letter-spacing:.04em">★ RECIPE</span></sc-if><sc-if value="{{ r.isProposed }}" hint-placeholder-val="{{ true }}"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#3C3B38;background:#F0EEEA;border:1px solid #E6E4DF;border-radius:2px;padding:1px 4px;margin-left:7px;letter-spacing:.04em">⚗ PROPOSED</span></sc-if></td>
-                    <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#6A6962;padding:8px 12px;border-bottom:1px solid #F0EEEA">{{ r.formulaTxt }}</td>
-                    <td style="text-align:right;font-family:'JetBrains Mono',monospace;color:#6A6962;padding:8px 12px;border-bottom:1px solid #F0EEEA">{{ r.mwTxt }}</td>
-                    <td style="padding:8px 10px;border-bottom:1px solid #F0EEEA"><div style="display:flex;gap:3px;justify-content:center"><sc-for list="{{ r.comps }}" as="c" hint-placeholder-count="7"><span title="{{ c.tip }}" style="width:9px;height:9px;border-radius:50%;background:{{ c.dot }};border:1px solid {{ c.dotBorder }}"></span></sc-for></div></td>
-                    <td style="padding:8px 12px;border-bottom:1px solid #F0EEEA"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.04em;padding:3px 7px;border-radius:2px;color:{{ r.vColor }};background:{{ r.vBg }};border:1px solid {{ r.vBr }};white-space:nowrap">{{ r.verdict }}</span></td>
-                    <td style="padding:8px 12px;border-bottom:1px solid #F0EEEA"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:5px;background:#F0EEEA;border-radius:2px;overflow:hidden;min-width:42px"><div style="height:100%;background:{{ r.overallColor }};width:{{ r.scoreW }}"></div></div><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#191917;font-weight:500">{{ r.overallTxt }}</span></div></td>
-                  </tr>
-                </sc-for>
-              </tbody>
-            </table>
+            <div style="min-width:1020px">
+              <div style="display:grid;grid-template-columns:36px 1.5fr 1.3fr 76px 132px 122px 1.3fr;background:#FAFAF8;border-bottom:1px solid #E6E4DF;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92">
+                <div style="padding:9px 10px;text-align:right">#</div>
+                <div onClick="{{ sort.name }}" style="padding:9px 12px;cursor:pointer">Precursor {{ ind.name }}</div>
+                <div style="padding:9px 12px">Formula</div>
+                <div onClick="{{ sort.mw }}" style="padding:9px 12px;text-align:right;cursor:pointer">MW {{ ind.mw }}</div>
+                <div style="padding:9px 8px;text-align:center">7-axis scorecard</div>
+                <div style="padding:9px 12px">Verdict</div>
+                <div onClick="{{ sort.overall }}" style="padding:9px 12px;cursor:pointer">Overall {{ ind.overall }}</div>
+              </div>
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+                <div onClick="{{ r.onSelect }}" style="display:grid;grid-template-columns:36px 1.5fr 1.3fr 76px 132px 122px 1.3fr;align-items:center;cursor:pointer;background:{{ r.rowBg }};box-shadow:{{ r.rowBar }};border-bottom:1px solid #F0EEEA;font-size:12.5px">
+                  <div style="text-align:right;font-family:'JetBrains Mono',monospace;color:#9B9A92;padding:8px 10px">{{ r.rank }}</div>
+                  <div style="padding:8px 12px"><span style="font-weight:600;color:#191917;font-size:13px">{{ r.name }}</span><sc-if value="{{ r.is_known_recipe }}" hint-placeholder-val="{{ true }}"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#92400E;background:#FBF0E2;border:1px solid #EBDCC2;border-radius:2px;padding:1px 4px;margin-left:7px;letter-spacing:.04em">★ RECIPE</span></sc-if><sc-if value="{{ r.isProposed }}" hint-placeholder-val="{{ true }}"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#3C3B38;background:#F0EEEA;border:1px solid #E6E4DF;border-radius:2px;padding:1px 4px;margin-left:7px;letter-spacing:.04em">⚗ PROPOSED</span></sc-if></div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#6A6962;padding:8px 12px;overflow:hidden;text-overflow:ellipsis">{{ r.formulaTxt }}</div>
+                  <div style="text-align:right;font-family:'JetBrains Mono',monospace;color:#6A6962;padding:8px 12px">{{ r.mwTxt }}</div>
+                  <div style="padding:8px 10px"><div style="display:flex;gap:3px;justify-content:center"><sc-for list="{{ r.comps }}" as="c" hint-placeholder-count="7"><span title="{{ c.tip }}" style="width:9px;height:9px;border-radius:50%;background:{{ c.dot }};border:1px solid {{ c.dotBorder }}"></span></sc-for></div></div>
+                  <div style="padding:8px 12px"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.04em;padding:3px 7px;border-radius:2px;color:{{ r.vColor }};background:{{ r.vBg }};border:1px solid {{ r.vBr }};white-space:nowrap">{{ r.verdict }}</span></div>
+                  <div style="padding:8px 12px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:5px;background:#F0EEEA;border-radius:2px;overflow:hidden;min-width:42px"><div style="height:100%;background:{{ r.overallColor }};width:{{ r.scoreW }}"></div></div><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#191917;font-weight:500">{{ r.overallTxt }}</span></div></div>
+                </div>
+              </sc-for>
+            </div>
           </div>
           <div style="display:flex;gap:18px;margin-top:11px;font-size:11px;color:#9B9A92;font-family:'JetBrains Mono',monospace;flex-wrap:wrap">
             <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#15803D;margin-right:5px"></span>≥0.70 strong</span>
@@ -211,27 +212,26 @@ body{background:#FAFAF8;color:#3C3B38;font-family:'Inter',system-ui,sans-serif;f
             <div style="background:#fff;padding:12px 14px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#9B9A92">Reject</div><div style="font-family:'JetBrains Mono',monospace;font-size:23px;font-weight:600;color:#B91C1C;margin-top:6px">{{ nReject }}</div></div>
           </div>
 
+          <!-- div-grid (see ranked-grid note: <sc-for> can't live inside <table> for file:// boot) -->
           <div style="border:1px solid #E6E4DF;border-radius:2px;background:#fff;overflow:auto">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:920px">
-              <thead><tr style="background:#FAFAF8">
-                <th style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF">Precursor</th>
-                <th style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF">Verdict</th>
-                <th style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF;width:230px">Ladder</th>
-                <th style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF">UMA E</th>
-                <th style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF">Recommended next step</th>
-              </tr></thead>
-              <tbody>
-                <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
-                  <tr onClick="{{ r.onSelect }}" style="cursor:pointer">
-                    <td style="padding:9px 12px;border-bottom:1px solid #F0EEEA;font-weight:600;color:#191917">{{ r.name }}</td>
-                    <td style="padding:9px 12px;border-bottom:1px solid #F0EEEA"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 7px;border-radius:2px;color:{{ r.vColor }};background:{{ r.vBg }};border:1px solid {{ r.vBr }}">{{ r.verdict }}</span></td>
-                    <td style="padding:9px 12px;border-bottom:1px solid #F0EEEA"><div style="display:flex;align-items:center;gap:4px"><sc-for list="{{ r.ladder }}" as="s" hint-placeholder-count="4"><span title="{{ s.label }}" style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:{{ s.dot }};border:1px solid {{ s.border }}"></span><span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:{{ s.txt }}">{{ s.label }}</span></span></sc-for></div></td>
-                    <td style="padding:9px 12px;border-bottom:1px solid #F0EEEA;text-align:right;font-family:'JetBrains Mono',monospace;color:#6A6962">{{ r.mlTxt }}</td>
-                    <td style="padding:9px 12px;border-bottom:1px solid #F0EEEA;color:#3C3B38;font-size:11.5px">{{ r.recommended_next_step }}</td>
-                  </tr>
-                </sc-for>
-              </tbody>
-            </table>
+            <div style="min-width:900px">
+              <div style="display:grid;grid-template-columns:1.1fr 130px 232px 86px 2.4fr;background:#FAFAF8;border-bottom:1px solid #E6E4DF;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;color:#9B9A92">
+                <div style="padding:9px 12px">Precursor</div>
+                <div style="padding:9px 12px">Verdict</div>
+                <div style="padding:9px 12px">Ladder</div>
+                <div style="padding:9px 12px;text-align:right">UMA E</div>
+                <div style="padding:9px 12px">Recommended next step</div>
+              </div>
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+                <div onClick="{{ r.onSelect }}" style="display:grid;grid-template-columns:1.1fr 130px 232px 86px 2.4fr;align-items:center;cursor:pointer;border-bottom:1px solid #F0EEEA;font-size:12px">
+                  <div style="padding:9px 12px;font-weight:600;color:#191917">{{ r.name }}</div>
+                  <div style="padding:9px 12px"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 7px;border-radius:2px;color:{{ r.vColor }};background:{{ r.vBg }};border:1px solid {{ r.vBr }}">{{ r.verdict }}</span></div>
+                  <div style="padding:9px 12px"><div style="display:flex;align-items:center;gap:4px"><sc-for list="{{ r.ladder }}" as="s" hint-placeholder-count="4"><span title="{{ s.label }}" style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:{{ s.dot }};border:1px solid {{ s.border }}"></span><span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:{{ s.txt }}">{{ s.label }}</span></span></sc-for></div></div>
+                  <div style="padding:9px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6A6962">{{ r.mlTxt }}</div>
+                  <div style="padding:9px 12px;color:#3C3B38;font-size:11.5px">{{ r.recommended_next_step }}</div>
+                </div>
+              </sc-for>
+            </div>
           </div>
           <p style="font-size:11.5px;color:#9B9A92;margin-top:11px;font-family:'JetBrains Mono',monospace">descriptor → UMA (oc20/omol) → DFT → experiment · UMA E is the omol molecular energy when the geometry was buildable (—  when descriptors-only).</p>
         </div>
@@ -352,18 +352,15 @@ body{background:#FAFAF8;color:#3C3B38;font-family:'Inter',system-ui,sans-serif;f
             <div style="display:flex;flex-direction:column;gap:16px">
               <div style="border:1px solid #E6E4DF;border-radius:2px;background:#fff;overflow:hidden">
                 <div style="padding:10px 13px;border-bottom:1px solid #E6E4DF;font-weight:600;color:#191917">Component scorecard — why it ranked here</div>
-                <table style="width:100%;border-collapse:collapse;font-size:12px">
-                  <tbody>
-                    <sc-for list="{{ sel.comps }}" as="c" hint-placeholder-count="7">
-                      <tr>
-                        <td style="padding:9px 13px;border-bottom:1px solid #F0EEEA;white-space:nowrap"><div style="color:#191917;font-weight:500">{{ c.label }}</div><div style="font-size:11px;color:#9B9A92">{{ c.hint }}</div></td>
-                        <td style="padding:9px 8px;border-bottom:1px solid #F0EEEA;width:120px"><div style="display:flex;align-items:center;gap:7px"><div style="flex:1;height:6px;background:#F0EEEA;border-radius:2px;overflow:hidden"><div style="height:100%;background:{{ c.color }};width:{{ c.w }}"></div></div><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#191917;font-weight:500">{{ c.scoreTxt }}</span></div></td>
-                        <td style="padding:9px 8px;border-bottom:1px solid #F0EEEA;text-align:center"><span title="{{ c.confLabel }}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ c.confColor }}">{{ c.confChar }}</span></td>
-                        <td style="padding:9px 13px;border-bottom:1px solid #F0EEEA;font-size:11.5px;color:#6A6962;line-height:1.45">{{ c.evidence }}</td>
-                      </tr>
-                    </sc-for>
-                  </tbody>
-                </table>
+                <!-- div-grid (see ranked-grid note above) -->
+                <sc-for list="{{ sel.comps }}" as="c" hint-placeholder-count="7">
+                  <div style="display:grid;grid-template-columns:150px 130px 28px 1fr;align-items:center;border-bottom:1px solid #F0EEEA;font-size:12px">
+                    <div style="padding:9px 13px"><div style="color:#191917;font-weight:500">{{ c.label }}</div><div style="font-size:11px;color:#9B9A92">{{ c.hint }}</div></div>
+                    <div style="padding:9px 8px"><div style="display:flex;align-items:center;gap:7px"><div style="flex:1;height:6px;background:#F0EEEA;border-radius:2px;overflow:hidden"><div style="height:100%;background:{{ c.color }};width:{{ c.w }}"></div></div><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#191917;font-weight:500">{{ c.scoreTxt }}</span></div></div>
+                    <div style="padding:9px 4px;text-align:center"><span title="{{ c.confLabel }}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ c.confColor }}">{{ c.confChar }}</span></div>
+                    <div style="padding:9px 13px;font-size:11.5px;color:#6A6962;line-height:1.45">{{ c.evidence }}</div>
+                  </div>
+                </sc-for>
               </div>
 
               <div style="border:1px solid #92400E;border-radius:2px;background:#FBF0E2">
