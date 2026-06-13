@@ -1,8 +1,8 @@
-# ALD Precursor Screening Platform
+# DensityGen: ALD Precursor Screening Platform
 
 ## TL;DR Plan
 
-Build a private, hackathon-scope screening platform for ALD precursor discovery. The first version should take candidate precursor molecules plus target film context, run fast ML atomistic estimates instead of first-principles DFT by default, score each candidate against ALD viability constraints, and expose results through a small hosted API on Replicate. Implementation is intentionally gated: this repo currently contains only the plan and README, and no pipeline code should be added until approved.
+Build DensityGen as a private, hackathon-scope screening platform for ALD precursor discovery. The first version should take candidate precursor molecules plus target film context, run fast ML atomistic estimates instead of first-principles DFT by default, score each candidate against ALD viability constraints, and expose results through a small hosted API on Replicate. Implementation is intentionally gated: this repo currently contains only the plan and README, and no pipeline code should be added until approved.
 
 The intended MVP has four layers:
 

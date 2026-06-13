@@ -10,14 +10,14 @@ Status: planning only.
 
 Deliverables:
 
-- Private GitHub repo.
+- Use the existing private GitHub repo `Divide-By-0/densitygen`.
 - Collaborator access for `paritoshk`.
 - README explaining motivation, architecture, and approval gate.
 - This plan file.
 
 Approval questions:
 
-- Repo name and owner are acceptable.
+- Repo name and owner are acceptable: `Divide-By-0/densitygen`.
 - Replicate is acceptable as the first hosted deployment target.
 - MVP should prioritize JSON/API correctness over UI polish.
 - First films to support: recommended `HfO2`, `TiN`, and `Al2O3`.
