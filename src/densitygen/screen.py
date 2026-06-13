@@ -8,7 +8,7 @@ gates, ranks, and attaches a recommended next computation/experiment.
 
 from __future__ import annotations
 
-from densitygen.chem import Composition, FormulaError, to_composition
+from densitygen.chem import Composition, FormulaError, parse_formula, to_composition
 from densitygen.compute import EnergyResult, get_backend
 from densitygen.data import (
     KNOWN_RECIPES,
@@ -28,12 +28,14 @@ from densitygen.scoring import (
     score_thermal_window,
 )
 from densitygen.schemas import (
+    BillingSummary,
     Candidate,
     CandidateResult,
     ModelProvenance,
     ScoreComponent,
     ScreeningRequest,
     ScreeningResponse,
+    SimulationCall,
 )
 
 
@@ -64,15 +66,23 @@ def _is_known_recipe(film: str, precursor_name: str) -> bool:
     )
 
 
-def _next_step(result_score: float, has_measured: bool, used_uma: bool, hard_fail: bool) -> str:
+def _next_step(
+    result_score: float, has_measured: bool, ml_backend: str | None, hard_fail: bool
+) -> str:
     if hard_fail:
         return "Reject: cannot deliver the target film element. No computation warranted."
-    if result_score >= 0.7 and not used_uma:
+    if result_score >= 0.7 and not ml_backend:
         return ("Promote: run UMA adsorption-energy (oc20) on the hydroxylated "
                 "target surface to confirm chemisorption, then a single DFT check.")
-    if result_score >= 0.7 and used_uma:
+    if result_score >= 0.7 and ml_backend and ml_backend.startswith("uma"):
         return "Promote to experiment: strong on all axes incl. UMA energetics. Synthesize/trial."
+    if result_score >= 0.7 and ml_backend:
+        return (f"Promote: real {ml_backend} energetics support this candidate; "
+                "run UMA/DFT confirmation before experiment.")
     if result_score >= 0.45:
+        if ml_backend and not ml_backend.startswith("uma"):
+            return (f"Borderline after real {ml_backend} proxy energetics; run "
+                    "UMA/DFT on the weakest component before committing lab budget.")
         return ("Borderline: run UMA on the weakest component before committing "
                 "GPU/DFT budget; consider a co-reactant swap.")
     return "Deprioritize: fails multiple ALD constraints; not worth compute budget."
@@ -80,16 +90,25 @@ def _next_step(result_score: float, has_measured: bool, used_uma: bool, hard_fai
 
 def _resolve_candidate(cand: Candidate) -> tuple[Composition, KnownPrecursor | None]:
     known = lookup_precursor(cand.name) if cand.name else None
-    if known is None and cand.formula is None and cand.smiles is None:
-        # name didn't resolve and no structure given
-        raise FormulaError(
-            f"'{cand.name}' is not a known precursor and no formula/SMILES was provided."
-        )
     if known is not None:
         comp = to_composition(formula=cand.formula or known.formula)
         return comp, known
-    comp = to_composition(formula=cand.formula, smiles=cand.smiles)
-    return comp, None
+    if cand.formula is not None or cand.smiles is not None:
+        return to_composition(formula=cand.formula, smiles=cand.smiles), None
+    # REASON: Most inorganic ALD precursors are *named by their formula* (WCl6,
+    # MoCl5, W(CO)6, TaF5...). When a candidate isn't in the curated DB and no
+    # explicit formula/SMILES was given, try parsing the name itself as a
+    # formula before giving up -- so a user can type "WCl6" and have it score,
+    # not bounce off as "no formula provided". Only error if that also fails.
+    if cand.name:
+        try:
+            return parse_formula(cand.name), None
+        except FormulaError:
+            pass
+    raise FormulaError(
+        f"'{cand.name}' is not a known precursor, is not a parseable formula, "
+        f"and no formula/SMILES was provided."
+    )
 
 
 def resolve_film(name: str) -> tuple[Film, list[str]]:
@@ -107,7 +126,7 @@ def resolve_film(name: str) -> tuple[Film, list[str]]:
 def compute_uma_signals(name: str, comp: Composition, film: Film, backend):
     """Run real UMA on a candidate where we can build its geometry.
 
-    Returns (molecular_energy_eV, adsorption_EnergyResult, notes). Anything we
+    Returns (molecular_energy_eV, adsorption_EnergyResult, notes, backend_label). Anything we
     can't build (polyatomic-ligand organometallics, unknown lattices) comes back
     None so the caller transparently falls back to descriptors for that axis.
     """
@@ -116,15 +135,17 @@ def compute_uma_signals(name: str, comp: Composition, film: Film, backend):
     notes: list[str] = []
     mol = S.build_molecule(name, comp)
     if mol is None:
-        return None, None, [f"{name}: no 3D geometry builder (descriptor fallback)"]
+        return None, None, [f"{name}: no 3D geometry builder (descriptor fallback)"], None
 
     is_local = hasattr(backend, "energy_atoms")
     # (1) Molecular energy (omol) -- a real number that proves UMA ran and feeds
     # stability reasoning.
     if is_local:
-        mol_e = backend.energy_atoms(mol, task="omol").energy_ev
+        mol_result = backend.energy_atoms(mol, task="omol")
     else:
-        mol_e = backend.energy(S.to_extxyz(mol), task="omol").energy_ev
+        mol_result = backend.energy(S.to_extxyz(mol), task="omol", label=f"{name} molecule")
+    mol_e = mol_result.energy_ev
+    backend_label = mol_result.backend
 
     # (2) Adsorption energy (oc20) on the film surface -- only meaningful when we
     # have a real slab. For metal films the elemental slab IS the film; for
@@ -140,16 +161,18 @@ def compute_uma_signals(name: str, comp: Composition, film: Film, backend):
                 ads = backend.adsorption_energy(
                     system_xyz=S.to_extxyz(system), slab_xyz=S.to_extxyz(slab),
                     molecule_xyz=S.to_extxyz(mol))
+            backend_label = ads.backend
         else:
             notes.append(f"{name}: no slab builder for {film.film_element}")
-    return mol_e, ads, notes
+    return mol_e, ads, notes, backend_label
 
 
 def build_scorecard(*, name: str, comp: Composition, known, film: Film,
                     co_reactant, temperature_max_c, forbidden_elements,
                     ads_energy: EnergyResult | None = None, ml_energy_ev=None,
                     used_uma: bool = False, origin: str = "input",
-                    is_known: bool = False) -> CandidateResult:
+                    is_known: bool = False, ml_backend: str | None = None,
+                    ml_calls: list[SimulationCall] | None = None) -> CandidateResult:
     """Assemble one candidate's full scorecard. Shared by screen() and design()."""
     ligand_class = known.ligand_class if known and known.ligand_class else \
         infer_ligand_class(comp, film.film_element)
@@ -176,6 +199,7 @@ def build_scorecard(*, name: str, comp: Composition, known, film: Film,
     if known and known.hazards:
         warnings.append("Hazards: " + ", ".join(known.hazards))
     has_measured = any(c.confidence == "measured" for c in comps)
+    backend_label = ml_backend or ("uma" if used_uma else None)
 
     return CandidateResult(
         name=name,
@@ -185,11 +209,32 @@ def build_scorecard(*, name: str, comp: Composition, known, film: Film,
         overall_score=overall,
         components=comps,
         warnings=warnings,
-        recommended_next_step=_next_step(overall, has_measured, used_uma, hard_fail),
+        recommended_next_step=_next_step(overall, has_measured, backend_label, hard_fail),
         is_known_recipe=is_known,
         origin=origin,
         ml_energy_ev=ml_energy_ev,
+        ml_calls=ml_calls or [],
     )
+
+
+def _simulation_calls(backend, start: int = 0) -> list[SimulationCall]:
+    calls = getattr(backend, "calls", None)
+    if not calls:
+        return []
+    out = []
+    for call in calls[start:]:
+        data = call if isinstance(call, dict) else call.__dict__
+        out.append(SimulationCall.model_validate(data))
+    return out
+
+
+def billing_from_backend(backend) -> BillingSummary | None:
+    if backend is None or not hasattr(backend, "billing_summary"):
+        return None
+    summary = backend.billing_summary()
+    if not summary.get("prediction_count"):
+        return None
+    return BillingSummary.model_validate(summary)
 
 
 def screen(request: ScreeningRequest, backend=None) -> ScreeningResponse:
@@ -224,9 +269,14 @@ def screen(request: ScreeningRequest, backend=None) -> ScreeningResponse:
         ads_energy = None
         ml_energy = None
         cand_used_uma = False
+        ml_backend = None
+        ml_calls: list[SimulationCall] = []
         if request.use_ml_potential and backend is not None:
             try:
-                ml_energy, ads_energy, notes = compute_uma_signals(cand.name, comp, film, backend)
+                call_start = len(getattr(backend, "calls", []))
+                ml_energy, ads_energy, notes, ml_backend = compute_uma_signals(
+                    cand.name, comp, film, backend)
+                ml_calls = _simulation_calls(backend, call_start)
                 if ml_energy is not None or ads_energy is not None:
                     cand_used_uma = True
                     any_used_uma = True
@@ -239,13 +289,15 @@ def screen(request: ScreeningRequest, backend=None) -> ScreeningResponse:
             co_reactant=request.co_reactant, temperature_max_c=request.temperature_max_c,
             forbidden_elements=request.forbidden_elements,
             ads_energy=ads_energy, ml_energy_ev=ml_energy, used_uma=cand_used_uma,
+            ml_backend=ml_backend, ml_calls=ml_calls,
             origin="input", is_known=_is_known_recipe(request.film, cand.name)))
 
     results.sort(key=lambda r: r.overall_score, reverse=True)
     return ScreeningResponse(
         film=request.film, co_reactant=request.co_reactant,
         ranked_candidates=results, warnings=response_warnings,
-        model_provenance=_provenance(any_used_uma, backend))
+        model_provenance=_provenance(any_used_uma, backend),
+        billing=billing_from_backend(backend))
 
 
 _BACKEND_LABEL = {"LocalUMA": "uma-local", "LocalMACE": "mace-local",

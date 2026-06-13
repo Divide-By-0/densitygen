@@ -31,7 +31,8 @@ def render_report(resp: ScreeningResponse) -> str:
         lines.append(f"\n#{i}  {c.name}{tag}")
         meta = f"    formula={c.formula or '?'}  MW={c.molecular_weight or '?'}  delivers={c.film_element or '?'}"
         if c.ml_energy_ev is not None:
-            meta += f"  UMA E={c.ml_energy_ev:.3f} eV"
+            backend = c.ml_calls[0].model if c.ml_calls else resp.model_provenance.compute_backend
+            meta += f"  ML E={c.ml_energy_ev:.3f} eV ({backend})"
         lines.append(meta)
         lines.append(f"    OVERALL  {_bar(c.overall_score)}  {c.overall_score:.2f}")
         for comp in c.components:
@@ -44,6 +45,12 @@ def render_report(resp: ScreeningResponse) -> str:
     if resp.warnings:
         lines.append("\nRun warnings:")
         lines.extend(f"  - {w}" for w in resp.warnings)
+    if resp.billing:
+        lines.append(
+            f"\nReplicate estimate: ${resp.billing.estimated_cost_usd:.4f} "
+            f"({resp.billing.predict_seconds:.2f}s @ "
+            f"${resp.billing.rate_usd_per_second:.6f}/s on {resp.billing.hardware})"
+        )
     lines.append("\nlegend: ✓ measured/literature   ~ estimated   ? unknown")
     return "\n".join(lines)
 

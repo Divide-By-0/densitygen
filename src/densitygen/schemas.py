@@ -48,6 +48,25 @@ class ScoreComponent(BaseModel):
     confidence: Literal["measured", "estimated", "unknown"] = "estimated"
 
 
+class SimulationCall(BaseModel):
+    label: str
+    task: str
+    model: str
+    prediction_id: Optional[str] = None
+    predict_time_s: float = 0.0
+    total_time_s: float = 0.0
+    cost_usd: float = 0.0
+
+
+class BillingSummary(BaseModel):
+    hardware: str = "gpu-a100-large"
+    rate_usd_per_second: float = 0.0014
+    prediction_count: int = 0
+    predict_seconds: float = 0.0
+    estimated_cost_usd: float = 0.0
+    calls: list[SimulationCall] = Field(default_factory=list)
+
+
 class CandidateResult(BaseModel):
     name: str
     formula: Optional[str] = None
@@ -60,6 +79,7 @@ class CandidateResult(BaseModel):
     is_known_recipe: bool = False
     origin: Literal["input", "proposed"] = "input"
     ml_energy_ev: Optional[float] = None  # real UMA energy when computed
+    ml_calls: list[SimulationCall] = Field(default_factory=list)
 
 
 class ModelProvenance(BaseModel):
@@ -75,3 +95,4 @@ class ScreeningResponse(BaseModel):
     ranked_candidates: list[CandidateResult]
     warnings: list[str] = Field(default_factory=list)
     model_provenance: ModelProvenance
+    billing: Optional[BillingSummary] = None

@@ -33,6 +33,22 @@ DEFAULT_REPLICATE_MODEL = os.environ.get(
     "densitygen/uma-ald",
 )
 
+REPLICATE_HARDWARE = os.environ.get("DENSITYGEN_REPLICATE_HARDWARE", "gpu-a100-large")
+REPLICATE_RATE_USD_PER_SECOND = float(
+    os.environ.get("DENSITYGEN_REPLICATE_RATE_USD_PER_SEC", "0.001400")
+)
+
+
+@dataclass
+class SimulationCallRecord:
+    label: str
+    task: str
+    model: str
+    prediction_id: str | None
+    predict_time_s: float
+    total_time_s: float
+    cost_usd: float
+
 
 @dataclass
 class EnergyResult:
@@ -41,6 +57,7 @@ class EnergyResult:
     task: str
     forces: Optional[list] = None
     note: str = ""
+    calls: list[SimulationCallRecord] | None = None
 
 
 class ComputeUnavailable(RuntimeError):
@@ -60,6 +77,8 @@ class MLPotentialClient:
     def __init__(self, model: str | None = None, token: str | None = None):
         self.model = model or DEFAULT_REPLICATE_MODEL
         self.token = token or os.environ.get("REPLICATE_API_TOKEN")
+        self.calls: list[SimulationCallRecord] = []
+        self._energy_cache: dict[tuple[str, str, bool], EnergyResult] = {}
 
     @property
     def available(self) -> bool:
@@ -71,7 +90,9 @@ class MLPotentialClient:
             return False
         return True
 
-    def energy(self, xyz: str, task: str = "omol", *, relax: bool = True) -> EnergyResult:
+    def energy(
+        self, xyz: str, task: str = "omol", *, relax: bool = True, label: str | None = None
+    ) -> EnergyResult:
         """Single energy (optionally relaxed) for a structure given as extxyz."""
         if task not in UMA_TASKS:
             raise ValueError(f"task must be one of {UMA_TASKS}, got {task!r}")
@@ -81,23 +102,55 @@ class MLPotentialClient:
                 "and `pip install replicate`, and deploy the Cog model "
                 f"({self.model})."
             )
+        key = (task, xyz, relax)
+        if key in self._energy_cache:
+            cached = self._energy_cache[key]
+            return EnergyResult(
+                energy_ev=cached.energy_ev,
+                backend=cached.backend,
+                task=cached.task,
+                forces=cached.forces,
+                note=cached.note + " (cached in request)",
+                calls=[],
+            )
         import replicate
 
         client = replicate.Client(api_token=self.token)
-        out = client.run(
-            self.model,
+        prediction = client.predictions.create(
+            model=self.model,
             input={"xyz": xyz, "task": task, "relax": relax},
+            wait=True,
         )
+        if getattr(prediction, "status", None) not in (None, "succeeded"):
+            prediction.wait()
+        data = prediction.dict()
+        out = data.get("output")
         # Cog predictor returns {"energy": float, "forces": [[...]]}.
         if not isinstance(out, dict) or "energy" not in out:
             raise ComputeUnavailable(f"unexpected UMA response shape: {type(out)}")
-        return EnergyResult(
+        metrics = data.get("metrics") or {}
+        predict_time = float(metrics.get("predict_time") or 0.0)
+        total_time = float(metrics.get("total_time") or 0.0)
+        call = SimulationCallRecord(
+            label=label or task,
+            task=task,
+            model=self.model,
+            prediction_id=data.get("id"),
+            predict_time_s=predict_time,
+            total_time_s=total_time,
+            cost_usd=round(predict_time * REPLICATE_RATE_USD_PER_SECOND, 6),
+        )
+        self.calls.append(call)
+        result = EnergyResult(
             energy_ev=float(out["energy"]),
             backend="uma-replicate",
             task=task,
             forces=out.get("forces"),
             note=f"UMA {task} via {self.model}",
+            calls=[call],
         )
+        self._energy_cache[key] = result
+        return result
 
     def adsorption_energy(
         self, *, system_xyz: str, slab_xyz: str, molecule_xyz: str
@@ -107,16 +160,31 @@ class MLPotentialClient:
         Negative => exothermic chemisorption (good for self-limiting ALD).
         Slab/system use the oc20 head; the gas molecule uses omol.
         """
-        e_sys = self.energy(system_xyz, task="oc20").energy_ev
-        e_slab = self.energy(slab_xyz, task="oc20").energy_ev
-        e_mol = self.energy(molecule_xyz, task="omol").energy_ev
+        sys = self.energy(system_xyz, task="oc20", label="slab + adsorbate")
+        slab = self.energy(slab_xyz, task="oc20", label="clean slab")
+        mol = self.energy(molecule_xyz, task="omol", label="gas molecule")
+        e_sys = sys.energy_ev
+        e_slab = slab.energy_ev
+        e_mol = mol.energy_ev
         e_ads = e_sys - e_slab - e_mol
         return EnergyResult(
             energy_ev=e_ads,
             backend="uma-replicate",
             task="oc20",
             note="adsorption energy (eV); negative = favorable chemisorption",
+            calls=[*(sys.calls or []), *(slab.calls or []), *(mol.calls or [])],
         )
+
+    def billing_summary(self) -> dict:
+        predict_seconds = round(sum(c.predict_time_s for c in self.calls), 6)
+        return {
+            "hardware": REPLICATE_HARDWARE,
+            "rate_usd_per_second": REPLICATE_RATE_USD_PER_SECOND,
+            "prediction_count": len(self.calls),
+            "predict_seconds": predict_seconds,
+            "estimated_cost_usd": round(predict_seconds * REPLICATE_RATE_USD_PER_SECOND, 6),
+            "calls": [c.__dict__ for c in self.calls],
+        }
 
 
 class LocalUMA:
