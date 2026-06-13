@@ -19,6 +19,35 @@ Every modern chip — in your phone, in AI data centers, in defense systems — 
 
 The two are complementary demos of the same thesis (fast screening → escalate only the survivors). The web UI talks directly to Materials Project; the engine runs the atomistic physics.
 
+## How it works (end to end)
+
+The core idea is an **escalation ladder**: triage everything cheaply, then spend expensive physics only on the finalists.
+
+```
+            many candidates                  a few survivors            1–2 finalists
+  INPUT ─▶  ┌────────────────┐   gates   ┌──────────────────┐  rank  ┌──────────────┐
+ film +     │ descriptor      │ ───────▶ │ real ML potential │ ─────▶ │ DFT / lab    │
+ limits     │ scorecard (7×)  │  drop    │ UMA → CHGNet      │ top-k  │ confirmation │
+            │ instant, no GPU │  fails   │ seconds, not hrs  │        │ (you decide) │
+            └────────────────┘          └──────────────────┘        └──────────────┘
+```
+
+Step by step:
+
+1. **Input** — pick a target film (e.g. `W`, `HfO2`, `NbP`) plus optional limits (temperature ceiling, forbidden elements). The **co-reactant is auto-selected** from the film kind (oxide→oxidant, nitride→nitridant, metal→reductant) unless you set one.
+2. **Get candidates — two modes:**
+   - **Screen** — you give a precursor shortlist to rank.
+   - **Design** — the *inverse-design* loop generates candidates itself (metal + a ligand library: halides, alkyls, amides, alkoxides, hydride, carbonyl, and mixes). No input beyond the film.
+3. **Build structures** — ASE turns each name/formula into 3D atoms (the ML potential needs coordinates; UMA relaxes them, so approximate geometry is fine).
+4. **Triage (cheap, every candidate)** — a seven-axis viability scorecard: `delivery` (volatility), `thermal_window`, `surface_reactivity`, `self_limiting`, `clean_ligand`, `byproduct`, `integration`. Instant, no GPU.
+5. **Hard gates** — a precursor that can't deliver the film's element, or that injects a forbidden element, fails to 0 before anything expensive runs.
+6. **Escalate (expensive, survivors only)** — the top few go to a real ML interatomic potential: **UMA** (`fairchem`, gated → hosted on Replicate) with **CHGNet** as the ungated fallback. Task heads: `omol` (stability), `oc20` (adsorption / self-limiting), `omat` (formation energy). Seconds per candidate vs. hours of DFT.
+7. **Rank + recommend** — every score carries an evidence string and a confidence tag (`✓ measured` / `~ estimated`), plus a recommended next step (descriptor → UMA → DFT → experiment).
+8. **Visualize** — the DataCore dashboard (`/viz`): a Pareto trade-off front + a 7-axis radar per candidate, with a live "suggest a precursor" re-rank.
+9. **Ship** — CLI (`ald-screen`), JSON/CSV, a hosted API, and the deployed web app.
+
+Calibration: the engine is checked against known literature recipes (WF6→W, TMA→Al₂O₃, TEMAH/HfCl4→HfO2, TiCl4/TDMAT→TiN) — and the design loop re-derives WF₆ for tungsten, a sanity check that the search is sane. Full build-instruction history is in [`prompts.md`](prompts.md); a one/two-slide walkthrough is in [`SLIDES.md`](SLIDES.md).
+
 ---
 
 # Part 1 — Web copilot UI (Next.js)
