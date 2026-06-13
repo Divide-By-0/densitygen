@@ -507,6 +507,19 @@ class Component extends DCLogic {
     };
     var v = self.verdictOf(card);
     card.verdict=v.key; card.vColor=v.col; card.vBg=v.bg; card.vBr=v.br;
+    // escalation ladder stage reached (descriptor -> UMA -> DFT -> expt)
+    var reached;
+    if(card.verdict.indexOf('REJECT')===0) reached=0;
+    else if(card.verdict==='DEPRIORITIZE') reached=1;
+    else if(card.verdict==='BORDERLINE') reached=2;
+    else if(card.verdict==='PROMOTE') reached=(card.ml_energy_ev!=null?3:2);
+    else reached=1;
+    card.ladder=['descriptor','UMA','DFT','expt'].map(function(lab,i){ var done=i<reached;
+      return {label:lab, dot:done?'#15803D':'#FFFFFF', border:done?'#15803D':'#D4D1CB', txt:done?'#3C3B38':'#B7B6AE'}; });
+    // selected-row highlight on the ranked table
+    var seld = card.name===self.state.selectedName;
+    card.rowBg = seld?'#FBF0E2':'#FFFFFF';
+    card.rowBar = seld?'inset 2px 0 0 #B45309':'none';
     card.onSelect=function(){ self.setState({selectedName:card.name, screen:'detail'}); };
     return card;
   }
@@ -658,24 +671,8 @@ class Component extends DCLogic {
         verdict:card.verdict, vColor:card.vColor, onSelect:card.onSelect };
     });
 
-    // ---- escalation ladder per candidate ----
-    var ladderLabels=['descriptor','UMA','DFT','expt'];
-    var escRows=cards.map(function(card){
-      var reached;
-      if(card.verdict.indexOf('REJECT')===0) reached=0;
-      else if(card.verdict==='DEPRIORITIZE') reached=1;
-      else if(card.verdict==='BORDERLINE') reached=2;
-      else if(card.verdict==='PROMOTE') reached=(card.ml_energy_ev!=null?3:2);
-      else reached=1;
-      var ladder=ladderLabels.map(function(lab,i){
-        var done=i<reached;
-        return { label:lab, dot: done?'#15803D':'#FFFFFF', border: done?'#15803D':'#D4D1CB',
-          txt: done?'#3C3B38':'#B7B6AE' };
-      });
-      return { name:card.name, verdict:card.verdict, vColor:card.vColor, vBg:card.vBg, vBr:card.vBr,
-        ladder:ladder, mlTxt:card.mlTxt, recommended_next_step:card.recommended_next_step,
-        onSelect:card.onSelect };
-    });
+    // Escalation table reuses `rows` -- each decorated card already carries its
+    // ladder, verdict, mlTxt and recommended_next_step (see decorate()).
 
     // ---- detail radar ----
     var RAD=92, CX=150, CY=150;

@@ -64,6 +64,45 @@ def _demo(args: argparse.Namespace) -> int:
     return 0
 
 
+def _viz(args: argparse.Namespace) -> int:
+    """Bake the interactive viz bundle from a screening request."""
+    from densitygen.viz import response_to_payload, write_bundle
+
+    payload_in = json.loads(Path(args.request).read_text())
+    if args.uma:
+        payload_in["use_ml_potential"] = True
+    request = ScreeningRequest.model_validate(payload_in)
+    resp = screen(request)
+    data = response_to_payload(resp, request=request, mode="screen")
+    entry = write_bundle(data, args.out)
+    print(f"wrote viz bundle to {Path(args.out).resolve()}", file=sys.stderr)
+    print(f"open: {entry}", file=sys.stderr)
+    print(f"  (or run `ald-screen serve {args.request}` for live precursor suggestions)",
+          file=sys.stderr)
+    return 0
+
+
+def _serve(args: argparse.Namespace) -> int:
+    from densitygen.server import serve
+
+    if args.request:
+        payload_in = json.loads(Path(args.request).read_text())
+        request = ScreeningRequest.model_validate(payload_in)
+    else:
+        # A sensible default demo so `ald-screen serve` works with no args.
+        request = ScreeningRequest(
+            film="HfO2", co_reactant="H2O", temperature_max_c=300,
+            forbidden_elements=["Cl"],
+            candidates=[
+                Candidate(name="TEMAH"), Candidate(name="HfCl4"),
+                Candidate(name="TDMAH", formula="Hf[N(CH3)2]4"),
+                Candidate(name="Hf(OtBu)4", formula="Hf(OC4H9)4"),
+            ],
+        )
+    serve(request, host=args.host, port=args.port, bundle_dir=args.out)
+    return 0
+
+
 def _design(args: argparse.Namespace) -> int:
     resp = design(
         film=args.film,
@@ -118,6 +157,20 @@ def main(argv: list[str] | None = None) -> int:
     pd = sub.add_parser("demo", help="run the WF6 -> W headline case")
     pd.add_argument("--uma", action="store_true", help="use the hosted UMA model")
     pd.set_defaults(func=_demo)
+
+    pv = sub.add_parser("viz", help="bake the interactive viz bundle from a request JSON")
+    pv.add_argument("request", help="path to a ScreeningRequest JSON file")
+    pv.add_argument("--out", default="densitygen_viz", help="output bundle directory")
+    pv.add_argument("--uma", action="store_true", help="use the hosted UMA model")
+    pv.set_defaults(func=_viz)
+
+    ps = sub.add_parser("serve", help="serve the viz with a live /api/screen for precursor suggestions")
+    ps.add_argument("request", nargs="?", default=None,
+                    help="optional ScreeningRequest JSON; omitted -> HfO2 demo")
+    ps.add_argument("--host", default="127.0.0.1")
+    ps.add_argument("--port", type=int, default=8765)
+    ps.add_argument("--out", default="densitygen_viz", help="bundle directory to serve")
+    ps.set_defaults(func=_serve)
 
     pg = sub.add_parser("design", help="PROPOSE novel precursors for a film (inverse design)")
     pg.add_argument("--film", required=True, help="target film, e.g. W, Mo, HfO2")

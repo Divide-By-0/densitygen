@@ -31,5 +31,10 @@ ald-screen = "densitygen.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+# Ship the viz template + DC runtime so `ald-screen viz`/`serve` work from an
+# installed wheel, not just an editable checkout.
+densitygen = ["viz_assets/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
