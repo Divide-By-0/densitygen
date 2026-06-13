@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>DensityGen — ALD precursor discovery for next-gen chips</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#141925; --panel2:#1b2233; --ink:#e6edf3; --dim:#8b98ad;
+    --acc:#5ed0ff; --acc2:#7cf6c3; --warn:#ffb454; --bad:#ff6b6b; --line:#26304a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#16243a 0%,var(--bg) 55%);
+       color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--acc)}
+  header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,14,20,.85);backdrop-filter:blur(8px);z-index:20}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;color:#04121a;font-weight:800}
+  .brand h1{font-size:17px;margin:0;letter-spacing:.2px}
+  .brand small{color:var(--dim)}
+  .nav button,.btn{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:7px 13px;border-radius:8px}
+  .nav button.active{border-color:var(--acc);color:var(--acc)}
+  .btn-primary{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#04121a;border:0;font-weight:700}
+  main{max-width:1060px;margin:0 auto;padding:24px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  label{display:block;font-size:12px;color:var(--dim);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+  select,input{font:inherit;background:var(--panel2);border:1px solid var(--line);color:var(--ink);padding:9px 11px;border-radius:8px;width:100%}
+  .field{flex:1;min-width:150px}
+  .pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .pill{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;color:var(--dim)}
+  .pill:hover{color:var(--ink);border-color:var(--acc)}
+  .muted{color:var(--dim)}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px}
+  .card.top{border-color:var(--acc2)}
+  .card h3{margin:0 0 2px;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tag{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+  .tag.known{color:var(--acc2);border-color:var(--acc2)}
+  .tag.proposed{color:var(--acc);border-color:var(--acc)}
+  .bar{height:9px;border-radius:6px;background:#0c1220;overflow:hidden;border:1px solid var(--line)}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--bad),var(--warn),var(--acc2))}
+  .comp{display:grid;grid-template-columns:150px 1fr 42px 14px;gap:9px;align-items:center;margin:4px 0;font-size:13px}
+  .comp .nm{color:var(--dim)}
+  .conf{font-weight:700}
+  .conf.measured{color:var(--acc2)} .conf.estimated{color:var(--warn)} .conf.unknown{color:var(--dim)}
+  .ev{font-size:12px;color:var(--dim);margin-top:6px}
+  .warn{color:var(--warn);font-size:13px;margin-top:6px}
+  .next{margin-top:8px;font-size:13px;color:var(--acc)}
+  .overall{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .score{font-weight:800;font-size:18px}
+  .prov{font-size:12px;color:var(--dim);margin-bottom:6px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(4,7,12,.78);backdrop-filter:blur(6px);display:grid;place-items:center;z-index:50;padding:20px}
+  .modal{max-width:680px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px;box-shadow:0 30px 80px rgba(0,0,0,.6);max-height:88vh;overflow:auto}
+  .modal h2{margin:0 0 4px;font-size:22px}
+  .modal .kicker{color:var(--acc2);font-size:12px;letter-spacing:2px;text-transform:uppercase}
+  .modal p{color:#cdd7e5}
+  .modal b{color:var(--ink)}
+  .hidden{display:none}
+  .foot{color:var(--dim);font-size:12px;text-align:center;padding:30px 0 50px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">D</div>
+    <div><h1>DensityGen</h1><small>ALD precursor discovery · ML-accelerated</small></div>
+  </div>
+  <div class="nav">
+    <button data-view="screen" class="active">Screen</button>
+    <button data-view="design">Design</button>
+    <button data-view="race">Interconnect race</button>
+    <button id="whyBtn">Why this matters</button>
+  </div>
+</header>
+
+<main>
+  <!-- SCREEN VIEW -->
+  <section id="view-screen">
+    <div class="panel">
+      <div class="row">
+        <div class="field"><label>Target film</label><select id="s-film"></select></div>
+        <div class="field"><label>Co-reactant</label><select id="s-co"></select></div>
+        <div class="field" style="max-width:170px"><label>Max temp (°C)</label><input id="s-temp" type="number" placeholder="e.g. 350"/></div>
+        <div class="field" style="max-width:170px"><label>Forbidden elements</label><input id="s-forbid" placeholder="e.g. Cl"/></div>
+      </div>
+      <div style="margin-top:12px"><label>Candidate precursors (name or formula, comma-separated)</label>
+        <input id="s-cands" placeholder="WF6, WCl6, W(CO)6, TMA"/></div>
+      <div class="pills" id="s-presets"></div>
+      <div style="margin-top:14px"><button class="btn-primary" id="s-run">Screen candidates →</button></div>
+    </div>
+    <div id="s-out"></div>
+  </section>
+
+  <!-- DESIGN VIEW -->
+  <section id="view-design" class="hidden">
+    <div class="panel">
+      <p class="muted" style="margin-top:0">Inverse design proposes <b>brand-new precursors you never listed</b>: it
+        combines the film's metal with a ligand library, scores every proposal, and ranks them.
+        For tungsten it re-derives WF₆ (flagged ★) — proof the search is sane.</p>
+      <div class="row">
+        <div class="field"><label>Target film (metal to deliver)</label><select id="d-film"></select></div>
+        <div class="field"><label>Co-reactant</label><select id="d-co"></select></div>
+        <div class="field" style="max-width:170px"><label>Max temp (°C)</label><input id="d-temp" type="number" placeholder="e.g. 400"/></div>
+        <div class="field" style="max-width:150px"><label>Propose top</label><input id="d-topn" type="number" value="10"/></div>
+      </div>
+      <div style="margin-top:14px"><button class="btn-primary" id="d-run">Propose precursors →</button></div>
+    </div>
+    <div id="d-out"></div>
+  </section>
+
+  <!-- RACE VIEW -->
+  <section id="view-race" class="hidden">
+    <div class="panel">
+      <h2 style="margin:0 0 6px">The interconnect-resistance race</h2>
+      <p class="muted" style="margin-top:0">Below ~20&nbsp;nm, copper/tungsten wiring resistance explodes from electron
+        scattering. The industry needs a new interconnect metal. Below: materials that already have
+        precursors (we <b>screen</b> them), and emerging ones that don't (we <b>invent</b> precursors for them).</p>
+      <button class="btn" id="r-load">Load the race →</button>
+    </div>
+    <div id="r-out"></div>
+  </section>
+
+  <div class="foot">DensityGen · descriptor scoring shown live · real UMA/CHGNet energies available in the CLI (<code>ald-screen demo --uma</code>)</div>
+</main>
+
+<!-- IMPORTANCE MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="kicker">Why this matters</div>
+    <h2>The race for the next chip material</h2>
+    <p><b>Every leap in computing is unlocked by a new material.</b> A modern chip is hundreds of
+      atom-thin films. The silicon is just the canvas — the deposited films do the work, and each
+      new generation needs a new one, laid down a single atomic layer at a time (ALD). The
+      bottleneck is finding the <b>precursor</b> molecule that delivers it.</p>
+    <p><b>The last time this happened, America won.</b> In 2007 Intel replaced the transistor's
+      silicon-dioxide gate with a hafnium "high-k" film (HfO₂, grown by ALD) and a new metal gate.
+      Gordon Moore called it the biggest change in transistor design since the late 1960s. It
+      rescued Moore's Law and locked in a U.S. process lead for a decade. (A decade earlier, IBM's
+      switch from aluminum to copper wiring did the same.) Each win came down to one thing: the
+      right material, and a precursor to deposit it.</p>
+    <p><b>The next race is on now — and it's wide open.</b> Wiring has hit a wall: below ~20&nbsp;nm,
+      copper and tungsten interconnect resistance explodes from electron scattering, throttling
+      every chip. The industry needs a new interconnect metal — ruthenium, molybdenum, or exotic
+      topological semimetals like NbP. There is no winner yet, and most candidates have <b>no
+      manufacturable precursor at all.</b></p>
+    <p><b>Whoever finds it first sets the standard.</b> Export controls slow China at the
+      EUV-tool level, but materials discovery is an open front. The nation that discovers the next
+      interconnect material — and the precursor to make it — defines the next decade of chips that
+      run AI, defense, and the economy. China is pouring tens of billions (the state "Big Fund")
+      into closing the gap.</p>
+    <p><b>This is the discovery tool.</b> Screening a precursor used to mean years of lab
+      trial-and-error and hours-per-candidate of supercomputer DFT. New AI atomistic models (Meta's
+      UMA) cut each calculation from hours to <b>seconds</b> — so we can screen, and even
+      <i>invent</i>, precursors for these new materials in minutes.</p>
+    <div style="text-align:right;margin-top:18px"><button class="btn-primary" id="closeModal">Start discovering →</button></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+let META=null;
+
+async function loadMeta(){
+  META = await (await fetch('/api/meta')).json();
+  const films = META.films.map(f=>`<option value="${f.formula}">${f.formula} — ${f.name} (${f.kind})</option>`).join('');
+  const cos = `<option value="">(none)</option>`+META.co_reactants.map(c=>`<option>${c.name}</option>`).join('');
+  $('#s-film').innerHTML=films; $('#d-film').innerHTML=films;
+  $('#s-co').innerHTML=cos; $('#d-co').innerHTML=cos;
+  // presets
+  const presets=[
+    ['WF₆→W demo',{film:'W',co:'B2H6',temp:350,cands:'WF6, WCl6, W(CO)6, TMA'}],
+    ['HfO₂ high-k (no Cl)',{film:'HfO2',co:'H2O',temp:300,forbid:'Cl',cands:'TEMAH, HfCl4, Hf(OtBu)4|Hf(OC4H9)4'}],
+    ['Mo interconnect',{film:'Mo',co:'H2 plasma',temp:400,cands:'MoF6, MoCl5, MoO2Cl2, Mo(CO)6'}],
+    ['Ru interconnect',{film:'Ru',co:'O2 plasma',temp:325,cands:'Ru(EtCp)2, RuCp2'}],
+  ];
+  $('#s-presets').innerHTML='';
+  presets.forEach(([label,p])=>{const b=el('span','pill',label);b.onclick=()=>applyPreset(p);$('#s-presets').appendChild(b);});
+}
+function applyPreset(p){
+  $('#s-film').value=p.film; $('#s-co').value=p.co||''; $('#s-temp').value=p.temp||'';
+  $('#s-forbid').value=p.forbid||''; $('#s-cands').value=p.cands||'';
+}
+function parseCands(str){
+  return str.split(',').map(s=>s.trim()).filter(Boolean).map(tok=>{
+    const [name,formula]=tok.split('|'); return {name:name.trim(),formula:formula?formula.trim():null};
+  });
+}
+function bar(v){const b=el('div','bar');b.appendChild(el('i',null,''));b.firstChild.style.width=(v*100).toFixed(0)+'%';return b;}
+function renderResp(resp){
+  const wrap=el('div');
+  wrap.appendChild(el('div','prov',`compute: <b>${resp.model_provenance.compute_backend}</b>${resp.model_provenance.model_name?' ['+resp.model_provenance.model_name+']':''} · ${resp.ranked_candidates.length} candidates`));
+  resp.ranked_candidates.forEach((c,i)=>{
+    const card=el('div','card'+(i===0&&c.overall_score>0?' top':''));
+    let tags='';
+    if(c.is_known_recipe)tags+=`<span class="tag known">★ known recipe</span>`;
+    if(c.origin==='proposed')tags+=`<span class="tag proposed">⚗ proposed</span>`;
+    let mle = c.ml_energy_ev!=null?` · <span class="muted">UMA E ${c.ml_energy_ev.toFixed(2)} eV</span>`:'';
+    card.appendChild(el('h3',null,`#${i+1} ${c.name} ${tags}`));
+    card.appendChild(el('div','muted',`${c.formula||'?'} · MW ${c.molecular_weight||'?'} · delivers ${c.film_element||'?'}${mle}`));
+    const ov=el('div','overall'); ov.appendChild(bar(c.overall_score));
+    ov.appendChild(el('span','score',c.overall_score.toFixed(2))); card.appendChild(ov);
+    (c.components||[]).forEach(cp=>{
+      const r=el('div','comp');
+      r.appendChild(el('span','nm',cp.name));
+      r.appendChild(bar(cp.score));
+      r.appendChild(el('span',null,cp.score.toFixed(2)));
+      r.appendChild(el('span','conf '+cp.confidence,{measured:'✓',estimated:'~',unknown:'?'}[cp.confidence]||'~'));
+      card.appendChild(r);
+      card.appendChild(el('div','ev',cp.evidence));
+    });
+    (c.warnings||[]).forEach(w=>card.appendChild(el('div','warn','⚠ '+w)));
+    if(c.recommended_next_step)card.appendChild(el('div','next','→ '+c.recommended_next_step));
+    wrap.appendChild(card);
+  });
+  return wrap;
+}
+async function runScreen(){
+  $('#s-out').innerHTML='<p class="muted">scoring…</p>';
+  const body={film:$('#s-film').value,co_reactant:$('#s-co').value||null,
+    temperature_max_c:$('#s-temp').value?+$('#s-temp').value:null,
+    forbidden_elements:$('#s-forbid').value.split(',').map(s=>s.trim()).filter(Boolean),
+    candidates:parseCands($('#s-cands').value)};
+  if(!body.candidates.length){$('#s-out').innerHTML='<p class="warn">Enter at least one candidate.</p>';return;}
+  const resp=await (await fetch('/api/screen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+  $('#s-out').innerHTML=''; $('#s-out').appendChild(renderResp(resp));
+}
+async function runDesign(){
+  $('#d-out').innerHTML='<p class="muted">generating & scoring candidates…</p>';
+  const body={film:$('#d-film').value,co_reactant:$('#d-co').value||null,
+    temperature_max_c:$('#d-temp').value?+$('#d-temp').value:null,top_n:+$('#d-topn').value||10};
+  const resp=await (await fetch('/api/design',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+  $('#d-out').innerHTML=''; $('#d-out').appendChild(renderResp(resp));
+}
+async function loadRace(){
+  $('#r-out').innerHTML='<p class="muted">running both buckets…</p>';
+  const data=await (await fetch('/api/interconnects')).json();
+  const out=el('div');
+  out.appendChild(el('h3',null,'Bucket A — materials that HAVE precursors (screened)'));
+  data.have_precursors.forEach(b=>{
+    out.appendChild(el('div','panel',`<b>${b.film}</b> + ${b.co_reactant} — <span class="muted">${b.why}</span>`));
+    out.lastChild.appendChild(renderResp(b.result));
+  });
+  out.appendChild(el('h3',null,'Bucket B — materials with NO precursor (invented)'));
+  data.need_precursors.forEach(b=>{
+    out.appendChild(el('div','panel',`<b>${b.film}</b> + ${b.co_reactant} — <span class="muted">${b.why}</span><br><span class="muted">${b.note}</span>`));
+    out.lastChild.appendChild(renderResp(b.result));
+  });
+  $('#r-out').innerHTML=''; $('#r-out').appendChild(out);
+}
+
+// view switching
+document.querySelectorAll('.nav button[data-view]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.nav button[data-view]').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  ['screen','design','race'].forEach(v=>$('#view-'+v).classList.toggle('hidden',v!==b.dataset.view));
+});
+$('#whyBtn').onclick=()=>$('#overlay').classList.remove('hidden');
+$('#closeModal').onclick=()=>$('#overlay').classList.add('hidden');
+$('#s-run').onclick=runScreen; $('#d-run').onclick=runDesign; $('#r-load').onclick=loadRace;
+
+loadMeta().then(()=>{ applyPreset({film:'W',co:'B2H6',temp:350,cands:'WF6, WCl6, W(CO)6, TMA'}); });
+</script>
+</body>
+</html>

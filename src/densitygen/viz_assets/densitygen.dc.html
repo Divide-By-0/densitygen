@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- data.js sets window.DENSITYGEN_DATA = <real screening output>. It is written
+     by `ald-screen viz`; when absent (template opened standalone) the component
+     falls back to the EMBEDDED sample baked into the script below. Loaded before
+     support.js so the data is present by the time React boots. -->
+<script src="./data.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#FAFAF8;color:#3C3B38;font-family:'Inter',system-ui,sans-serif;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+@keyframes dgpulse{0%{box-shadow:0 0 0 0 rgba(180,83,9,.55)}70%{box-shadow:0 0 0 6px rgba(180,83,9,0)}100%{box-shadow:0 0 0 0 rgba(180,83,9,0)}}
+@keyframes dgblink{0%,100%{opacity:1}50%{opacity:.35}}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#D4D1CB;border-radius:0}
+::-webkit-scrollbar-track{background:#F5F4F1}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+
+<div style="height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#FAFAF8">
+
+  <!-- ===== INSTRUMENT STRIP ===== -->
+  <div style="display:flex;align-items:center;gap:22px;padding:8px 18px;background:#191917;color:#EDEBE6;font-family:'JetBrains Mono',monospace;font-size:12px;flex:0 0 auto;border-bottom:1px solid #000">
+    <span style="font-family:'Instrument Serif',serif;font-size:20px;letter-spacing:.01em;color:#fff;margin-right:2px">densitygen</span>
+    <span style="display:flex;align-items:center;gap:7px;color:#B9B6AF"><span style="width:6px;height:6px;border-radius:50%;background:#B45309;animation:dgpulse 2.4s infinite"></span>SCREENER <b style="color:#fff;font-weight:500">{{ liveLabel }}</b></span>
+    <span style="display:flex;align-items:center;gap:6px;color:#B9B6AF">FILM <b style="color:#fff;font-weight:500">{{ meta.film }}</b></span>
+    <span style="display:flex;align-items:center;gap:6px;color:#B9B6AF">CANDIDATES <b style="color:#fff;font-weight:500">{{ nCand }}</b></span>
+    <span style="display:flex;align-items:center;gap:6px;color:#B9B6AF">BACKEND <b style="color:#fff;font-weight:500">{{ backendShort }}</b></span>
+    <span style="margin-left:auto;display:flex;align-items:center;gap:16px;color:#8C8980">
+      <span>MODE <b style="color:#EDEBE6;font-weight:500">{{ modeLabel }}</b></span>
+      <span style="width:22px;height:22px;border-radius:50%;background:#3C3B38;display:flex;align-items:center;justify-content:center;color:#EDEBE6;font-size:11px">DG</span>
+    </span>
+  </div>
+
+  <!-- ===== RUN-CONTEXT STRIP ===== -->
+  <div style="display:flex;align-items:stretch;background:#FFFFFF;border-bottom:1px solid #E6E4DF;flex:0 0 auto;height:40px;font-size:12px;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:8px;padding:0 16px;border-right:1px solid #E6E4DF"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#9B9A92">TARGET</span><span style="color:#191917;font-weight:500">{{ meta.film }} film{{ coReactantTxt }}</span></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 16px;border-right:1px solid #E6E4DF"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#9B9A92">DELIVERS</span><span style="font-family:'JetBrains Mono',monospace;color:#3C3B38">{{ meta.film_element }}</span></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 16px;border-right:1px solid #E6E4DF"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#9B9A92">CAP</span><span style="color:#3C3B38">{{ tempCapTxt }}</span></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 16px;margin-left:auto"><span style="font-family:'JetBrains Mono',monospace;color:#92400E;font-weight:500">{{ funnelTxt }}</span></div>
+  </div>
+
+  <!-- ===== BODY ===== -->
+  <div style="flex:1 1 auto;display:flex;min-height:0">
+
+    <!-- left rail -->
+    <nav style="flex:0 0 66px;background:#FAFAF8;border-right:1px solid #E6E4DF;display:flex;flex-direction:column;padding-top:6px">
+      <sc-for list="{{ navItems }}" as="it" hint-placeholder-count="5">
+        <button style="{{ it.style }}" onClick="{{ it.onClick }}"><span style="{{ it.icon_style }}">{{ it.icon }}</span><span style="{{ it.lab_style }}">{{ it.label }}</span></button>
+      </sc-for>
+    </nav>
+
+    <!-- main -->
+    <main style="flex:1 1 auto;overflow:auto;min-width:0;background:#FAFAF8">
+
+      <!-- ============ SCREEN: CANDIDATES ============ -->
+      <sc-if value="{{ isCand }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:20px 22px 40px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;color:#9B9A92;text-transform:uppercase">02 · Ranked precursors</div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px 20px;flex-wrap:wrap;margin:4px 0 16px">
+            <div style="flex:1 1 360px;min-width:290px">
+              <h1 style="font-family:'Instrument Serif',serif;font-size:32px;font-weight:400;color:#191917;line-height:1.16">ALD precursor <span style="font-style:italic;color:#B45309">scorecard</span></h1>
+              <p style="color:#6A6962;font-size:13px;margin-top:4px">{{ nCand }} candidates for <b>{{ meta.film }}</b>, ranked by the seven-axis viability score. Each dot is a component score; click a row for the full evidence and provenance. <span style="font-family:'JetBrains Mono',monospace;color:#92400E">★</span> = known recipe.</p>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button style="font-size:12.5px;font-weight:500;padding:8px 13px;border-radius:2px;border:1px solid #D4D1CB;background:#fff;color:#191917;cursor:pointer" onClick="{{ goPareto }}">Trade-offs ↗</button>
+              <button style="font-size:12.5px;font-weight:500;padding:8px 13px;border-radius:2px;border:1px solid #92400E;background:#B45309;color:#fff;cursor:pointer" onClick="{{ goEscalate }}">Escalation ladder →</button>
+            </div>
+          </div>
+
+          <!-- KPI tiles -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#E6E4DF;border:1px solid #E6E4DF;border-radius:2px;overflow:hidden;margin-bottom:18px">
+            <div style="background:#fff;padding:13px 15px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#9B9A92">Promote</div><div style="font-family:'JetBrains Mono',monospace;font-size:25px;font-weight:600;color:#15803D;margin-top:7px">{{ nPromote }}<span style="font-size:14px;color:#9B9A92"> / {{ nCand }}</span></div><div style="height:2px;background:#15803D;margin-top:11px;width:{{ promoteW }}"></div></div>
+            <div style="background:#fff;padding:13px 15px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#9B9A92">Top candidate</div><div style="font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:600;color:#191917;margin-top:7px">{{ topName }}</div><div style="font-size:11px;color:#9B9A92;margin-top:5px">score {{ topScore }}</div></div>
+            <div style="background:#fff;padding:13px 15px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#9B9A92">Literature-backed</div><div style="font-family:'JetBrains Mono',monospace;font-size:25px;font-weight:600;color:#191917;margin-top:7px">{{ nMeasured }}<span style="font-size:13px;color:#9B9A92"> measured</span></div><div style="height:2px;background:#B45309;margin-top:11px;width:{{ measuredW }}"></div></div>
+            <div style="background:#fff;padding:13px 15px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#9B9A92">Hard-failed gate</div><div style="font-family:'JetBrains Mono',monospace;font-size:25px;font-weight:600;color:{{ failColor }};margin-top:7px">{{ nHardFail }}</div><div style="font-size:11px;color:#9B9A92;margin-top:5px">no film element</div></div>
+          </div>
+
+          <!-- TABLE -->
+          <div style="border:1px solid #E6E4DF;border-radius:2px;overflow:auto;background:#fff">
+            <table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:1080px">
+              <thead>
+                <tr style="background:#FAFAF8">
+                  <th style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 10px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">#</th>
+                  <th onClick="{{ sort.name }}" style="cursor:pointer;text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">Precursor {{ ind.name }}</th>
+                  <th style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">Formula</th>
+                  <th onClick="{{ sort.mw }}" style="cursor:pointer;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">MW {{ ind.mw }}</th>
+                  <th style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 8px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">7-axis scorecard</th>
+                  <th style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">Verdict</th>
+                  <th onClick="{{ sort.overall }}" style="cursor:pointer;text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF;position:sticky;top:0;background:#FAFAF8">Overall {{ ind.overall }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+                  <tr onClick="{{ r.onSelect }}" style="cursor:pointer;background:{{ r.rowBg }};box-shadow:{{ r.rowBar }}">
+                    <td style="text-align:right;font-family:'JetBrains Mono',monospace;color:#9B9A92;padding:8px 10px;border-bottom:1px solid #F0EEEA">{{ r.rank }}</td>
+                    <td style="padding:8px 12px;border-bottom:1px solid #F0EEEA"><span style="font-weight:600;color:#191917;font-size:13px">{{ r.name }}</span><sc-if value="{{ r.is_known_recipe }}" hint-placeholder-val="{{ true }}"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#92400E;background:#FBF0E2;border:1px solid #EBDCC2;border-radius:2px;padding:1px 4px;margin-left:7px;letter-spacing:.04em">★ RECIPE</span></sc-if><sc-if value="{{ r.isProposed }}" hint-placeholder-val="{{ true }}"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#3C3B38;background:#F0EEEA;border:1px solid #E6E4DF;border-radius:2px;padding:1px 4px;margin-left:7px;letter-spacing:.04em">⚗ PROPOSED</span></sc-if></td>
+                    <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#6A6962;padding:8px 12px;border-bottom:1px solid #F0EEEA">{{ r.formulaTxt }}</td>
+                    <td style="text-align:right;font-family:'JetBrains Mono',monospace;color:#6A6962;padding:8px 12px;border-bottom:1px solid #F0EEEA">{{ r.mwTxt }}</td>
+                    <td style="padding:8px 10px;border-bottom:1px solid #F0EEEA"><div style="display:flex;gap:3px;justify-content:center"><sc-for list="{{ r.comps }}" as="c" hint-placeholder-count="7"><span title="{{ c.tip }}" style="width:9px;height:9px;border-radius:50%;background:{{ c.dot }};border:1px solid {{ c.dotBorder }}"></span></sc-for></div></td>
+                    <td style="padding:8px 12px;border-bottom:1px solid #F0EEEA"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.04em;padding:3px 7px;border-radius:2px;color:{{ r.vColor }};background:{{ r.vBg }};border:1px solid {{ r.vBr }};white-space:nowrap">{{ r.verdict }}</span></td>
+                    <td style="padding:8px 12px;border-bottom:1px solid #F0EEEA"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:5px;background:#F0EEEA;border-radius:2px;overflow:hidden;min-width:42px"><div style="height:100%;background:{{ r.overallColor }};width:{{ r.scoreW }}"></div></div><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#191917;font-weight:500">{{ r.overallTxt }}</span></div></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div style="display:flex;gap:18px;margin-top:11px;font-size:11px;color:#9B9A92;font-family:'JetBrains Mono',monospace;flex-wrap:wrap">
+            <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#15803D;margin-right:5px"></span>≥0.70 strong</span>
+            <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#A16207;margin-right:5px"></span>0.45–0.70 watch</span>
+            <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#B91C1C;margin-right:5px"></span>&lt;0.45 weak</span>
+            <span>dots, left→right: {{ axisLegend }}</span>
+            <span style="margin-left:auto">click a row → full scorecard</span>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ SCREEN: TRADE-OFFS ============ -->
+      <sc-if value="{{ isPareto }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:20px 22px 40px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;color:#9B9A92;text-transform:uppercase">03 · Trade-off explorer</div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px 20px;flex-wrap:wrap;margin:4px 0 16px">
+            <div style="flex:1 1 360px;min-width:290px">
+              <h1 style="font-family:'Instrument Serif',serif;font-size:32px;font-weight:400;color:#191917;line-height:1.16">Property <span style="font-style:italic;color:#B45309">trade-offs</span></h1>
+              <p style="color:#6A6962;font-size:13px;margin-top:4px">No precursor maxes every axis. The frontier (amber) holds the non-dominated choices for the two axes below — gains on one cost the other.</p>
+            </div>
+            <div style="display:inline-flex;border:1px solid #D4D1CB;border-radius:2px;overflow:hidden;flex:0 0 auto">
+              <button onClick="{{ setT1 }}" style="font-size:12px;font-weight:500;padding:8px 14px;border:0;border-right:1px solid #E6E4DF;cursor:pointer;background:{{ t1bg }};color:{{ t1fg }}">Deliver × Clean</button>
+              <button onClick="{{ setT2 }}" style="font-size:12px;font-weight:500;padding:8px 14px;border:0;border-right:1px solid #E6E4DF;cursor:pointer;background:{{ t2bg }};color:{{ t2fg }}">React × Thermal</button>
+              <button onClick="{{ setT3 }}" style="font-size:12px;font-weight:500;padding:8px 14px;border:0;cursor:pointer;background:{{ t3bg }};color:{{ t3fg }}">Score ranking</button>
+            </div>
+          </div>
+
+          <sc-if value="{{ isScatter }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:1fr 270px;gap:16px;align-items:start">
+              <div style="border:1px solid #E6E4DF;border-radius:2px;background:#fff;padding:8px 8px 4px;position:relative">
+                <div style="display:flex;justify-content:space-between;padding:6px 8px 2px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6A6962">{{ scatterTitle }} · maximise both ↗</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#92400E">PARETO</span></div>
+                <svg viewBox="0 0 640 460" style="width:100%;height:auto;display:block">
+                  <rect x="62" y="20" width="556" height="384" fill="#FAFAF8"></rect>
+                  <sc-for list="{{ gridY }}" as="t" hint-placeholder-count="5"><line x1="62" y1="{{ t.y }}" x2="618" y2="{{ t.y }}" stroke="#EFEDE8" stroke-width="1"></line><text x="55" y="{{ t.y }}" fill="#9B9A92" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="end" dy="3">{{ t.label }}</text></sc-for>
+                  <sc-for list="{{ gridX }}" as="t" hint-placeholder-count="5"><text x="{{ t.x }}" y="420" fill="#9B9A92" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">{{ t.label }}</text></sc-for>
+                  <polyline points="{{ frontPts }}" fill="none" stroke="#B45309" stroke-width="1.6" stroke-dasharray="5 3"></polyline>
+                  <sc-for list="{{ scatterPts }}" as="p" hint-placeholder-count="6"><circle cx="{{ p.px }}" cy="{{ p.py }}" r="{{ p.rad }}" fill="{{ p.fill }}" stroke="{{ p.stroke }}" stroke-width="{{ p.sw }}" opacity="{{ p.op }}" style="cursor:pointer" onClick="{{ p.onSelect }}" onMouseEnter="{{ p.onEnter }}" onMouseLeave="{{ p.onLeave }}"></circle></sc-for>
+                  <sc-for list="{{ scatterLabels }}" as="l" hint-placeholder-count="6"><text x="{{ l.px }}" y="{{ l.py }}" fill="{{ l.color }}" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="500">{{ l.name }}</text></sc-for>
+                  <text x="340" y="448" fill="#6A6962" font-family="Inter" font-size="12" text-anchor="middle">{{ xAxisLabel }} →</text>
+                  <text x="20" y="212" fill="#6A6962" font-family="Inter" font-size="12" text-anchor="middle" transform="rotate(-90 20 212)">{{ yAxisLabel }} →</text>
+                </svg>
+                <sc-if value="{{ hover.show }}" hint-placeholder-val="{{ true }}">
+                  <div style="position:absolute;left:{{ hover.left }};top:{{ hover.top }};background:#191917;color:#EDEBE6;border-radius:2px;padding:7px 9px;font-family:'JetBrains Mono',monospace;font-size:11px;pointer-events:none;white-space:nowrap;z-index:5;box-shadow:0 4px 12px rgba(0,0,0,.18)"><b style="color:#fff">{{ hover.name }}</b><br>{{ hover.xLab }} {{ hover.xVal }} · {{ hover.yLab }} {{ hover.yVal }}<br><span style="color:#E6A463">{{ hover.front }}</span></div>
+                </sc-if>
+              </div>
+              <!-- readout panel -->
+              <div style="border:1px solid #E6E4DF;border-radius:2px;background:#fff">
+                <div style="padding:11px 13px;border-bottom:1px solid #E6E4DF;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600;color:#191917;font-size:13px">{{ sel.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6A6962">{{ sel.formulaTxt }}</span></div>
+                <div style="padding:13px">
+                  <sc-for list="{{ sel.comps }}" as="c" hint-placeholder-count="7">
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #F0EEEA"><span style="color:#6A6962;font-size:12px">{{ c.label }}</span><span style="font-family:'JetBrains Mono',monospace;color:{{ c.color }};font-weight:500">{{ c.scoreTxt }} <span style="color:{{ c.confColor }}">{{ c.confChar }}</span></span></div>
+                  </sc-for>
+                  <button style="margin-top:13px;width:100%;font-size:12.5px;font-weight:500;padding:9px;border-radius:2px;border:1px solid #92400E;background:#B45309;color:#fff;cursor:pointer" onClick="{{ sel.onSelect }}">Open full scorecard →</button>
+                </div>
+                <div style="padding:11px 13px;border-top:1px solid #E6E4DF;background:#FAFAF8">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#9B9A92;margin-bottom:6px">Reading the frontier</div>
+                  <p style="font-size:11.5px;color:#6A6962;line-height:1.5">Amber points are Pareto-optimal on these two axes — nothing beats them on both. Hollow points are dominated. The ideal precursor sits in the upper-right.</p>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- score ranking bars -->
+          <sc-if value="{{ isRanking }}" hint-placeholder-val="{{ true }}">
+            <div style="border:1px solid #E6E4DF;border-radius:2px;background:#fff;padding:16px">
+              <sc-for list="{{ rankBars }}" as="b" hint-placeholder-count="6">
+                <div onClick="{{ b.onSelect }}" style="display:flex;align-items:center;gap:12px;padding:7px 4px;cursor:pointer;border-bottom:1px solid #F5F4F1">
+                  <span style="width:118px;flex:0 0 auto;font-weight:600;color:#191917;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.name }}</span>
+                  <div style="flex:1;height:14px;background:#F0EEEA;border-radius:2px;overflow:hidden"><div style="height:100%;background:{{ b.color }};width:{{ b.w }}"></div></div>
+                  <span style="width:42px;flex:0 0 auto;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#191917;font-weight:500">{{ b.scoreTxt }}</span>
+                  <span style="width:104px;flex:0 0 auto;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ b.vColor }}">{{ b.verdict }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ============ SCREEN: ESCALATION ============ -->
+      <sc-if value="{{ isEscalate }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:20px 22px 40px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;color:#9B9A92;text-transform:uppercase">04 · Escalation ladder</div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px 20px;flex-wrap:wrap;margin:4px 0 16px">
+            <div style="flex:1 1 360px;min-width:290px">
+              <h1 style="font-family:'Instrument Serif',serif;font-size:32px;font-weight:400;color:#191917;line-height:1.16">Cheap-first <span style="font-style:italic;color:#B45309">escalation</span></h1>
+              <p style="color:#6A6962;font-size:13px;margin-top:4px">Descriptors triage every candidate in milliseconds; only survivors earn real UMA energies, then DFT, then bench time. The next step below is exactly what <span style="font-family:'JetBrains Mono',monospace">screen()</span> recommends per candidate.</p>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#E6E4DF;border:1px solid #E6E4DF;border-radius:2px;overflow:hidden;margin-bottom:18px">
+            <div style="background:#fff;padding:12px 14px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#9B9A92">Promote</div><div style="font-family:'JetBrains Mono',monospace;font-size:23px;font-weight:600;color:#15803D;margin-top:6px">{{ nPromote }}</div></div>
+            <div style="background:#fff;padding:12px 14px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#9B9A92">Borderline</div><div style="font-family:'JetBrains Mono',monospace;font-size:23px;font-weight:600;color:#A16207;margin-top:6px">{{ nBorderline }}</div></div>
+            <div style="background:#fff;padding:12px 14px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#9B9A92">Deprioritize</div><div style="font-family:'JetBrains Mono',monospace;font-size:23px;font-weight:600;color:#6A6962;margin-top:6px">{{ nDeprioritize }}</div></div>
+            <div style="background:#fff;padding:12px 14px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#9B9A92">Reject</div><div style="font-family:'JetBrains Mono',monospace;font-size:23px;font-weight:600;color:#B91C1C;margin-top:6px">{{ nReject }}</div></div>
+          </div>
+
+          <div style="border:1px solid #E6E4DF;border-radius:2px;background:#fff;overflow:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:920px">
+              <thead><tr style="background:#FAFAF8">
+                <th style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF">Precursor</th>
+                <th style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF">Verdict</th>
+                <th style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF;width:230px">Ladder</th>
+                <th style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF">UMA E</th>
+                <th style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;color:#9B9A92;font-weight:500;padding:9px 12px;border-bottom:1px solid #E6E4DF">Recommended next step</th>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+                  <tr onClick="{{ r.onSelect }}" style="cursor:pointer">
+                    <td style="padding:9px 12px;border-bottom:1px solid #F0EEEA;font-weight:600;color:#191917">{{ r.name }}</td>
+                    <td style="padding:9px 12px;border-bottom:1px solid #F0EEEA"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 7px;border-radius:2px;color:{{ r.vColor }};background:{{ r.vBg }};border:1px solid {{ r.vBr }}">{{ r.verdict }}</span></td>
+                    <td style="padding:9px 12px;border-bottom:1px solid #F0EEEA"><div style="display:flex;align-items:center;gap:4px"><sc-for list="{{ r.ladder }}" as="s" hint-placeholder-count="4"><span title="{{ s.label }}" style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:{{ s.dot }};border:1px solid {{ s.border }}"></span><span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:{{ s.txt }}">{{ s.label }}</span></span></sc-for></div></td>
+                    <td style="padding:9px 12px;border-bottom:1px solid #F0EEEA;text-align:right;font-family:'JetBrains Mono',monospace;color:#6A6962">{{ r.mlTxt }}</td>
+                    <td style="padding:9px 12px;border-bottom:1px solid #F0EEEA;color:#3C3B38;font-size:11.5px">{{ r.recommended_next_step }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <p style="font-size:11.5px;color:#9B9A92;margin-top:11px;font-family:'JetBrains Mono',monospace">descriptor → UMA (oc20/omol) → DFT → experiment · UMA E is the omol molecular energy when the geometry was buildable (—  when descriptors-only).</p>
+        </div>
+      </sc-if>
+
+      <!-- ============ SCREEN: INTAKE ============ -->
+      <sc-if value="{{ isIntake }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:20px 22px 40px;max-width:1120px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;color:#9B9A92;text-transform:uppercase">01 · Screening request</div>
+          <h1 style="font-family:'Instrument Serif',serif;font-size:32px;font-weight:400;color:#191917;line-height:1.16;margin:4px 0 2px">What we asked the screener for <span style="font-style:italic;color:#B45309">{{ meta.film }}</span></h1>
+          <p style="color:#6A6962;font-size:13px;margin-bottom:18px">The request, the hard constraints, and the compute provenance behind every number on the candidates screen.</p>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div style="border:1px solid #E6E4DF;border-radius:2px;background:#fff">
+                <div style="padding:10px 13px;border-bottom:1px solid #E6E4DF;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600;color:#191917">Process request</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;color:#9B9A92">ScreeningRequest</span></div>
+                <div style="padding:13px 15px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#3C3B38;line-height:1.9">
+                  <div style="display:flex;justify-content:space-between"><span style="color:#9B9A92">film</span><span style="color:#191917">{{ meta.film }}</span></div>
+                  <div style="display:flex;justify-content:space-between"><span style="color:#9B9A92">delivers</span><span>{{ meta.film_element }}</span></div>
+                  <div style="display:flex;justify-content:space-between"><span style="color:#9B9A92">co-reactant</span><span>{{ coReactantVal }}</span></div>
+                  <div style="display:flex;justify-content:space-between"><span style="color:#9B9A92">temp cap</span><span>{{ tempCapTxt }}</span></div>
+                  <div style="display:flex;justify-content:space-between"><span style="color:#9B9A92">surface</span><span style="max-width:230px;text-align:right;white-space:normal">{{ surfaceVal }}</span></div>
+                </div>
+              </div>
+
+              <div style="border:1px solid #E6E4DF;border-radius:2px;background:#fff">
+                <div style="padding:10px 13px;border-bottom:1px solid #E6E4DF;font-weight:600;color:#191917">Hard constraints</div>
+                <div style="padding:13px 15px;display:flex;flex-wrap:wrap;gap:7px">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#FBF0E2;color:#92400E;border:1px solid #EBDCC2;border-radius:2px;padding:4px 8px">must contain {{ meta.film_element }}</span>
+                  <sc-for list="{{ forbiddenChips }}" as="f" hint-placeholder-count="2"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#FBECEC;color:#B91C1C;border:1px solid #EBCFCF;border-radius:2px;padding:4px 8px">exclude {{ f }}</span></sc-for>
+                  <sc-if value="{{ noForbidden }}" hint-placeholder-val="{{ true }}"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#F5F4F1;color:#6A6962;border:1px solid #E6E4DF;border-radius:2px;padding:4px 8px">no forbidden elements</span></sc-if>
+                </div>
+              </div>
+
+              <div style="border:1px solid #D4D1CB;border-radius:2px;background:#fff">
+                <div style="padding:10px 13px;border-bottom:1px solid #E6E4DF;font-weight:600;color:#191917">Escalation ladder</div>
+                <div style="padding:13px 15px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#3C3B38;line-height:1.9">
+                  <div><span style="color:#9B9A92">1 ·</span> descriptor scorecard · all <span style="color:#92400E">{{ nCand }}</span> candidates</div>
+                  <div><span style="color:#9B9A92">2 ·</span> UMA oc20/omol on survivors → <span style="color:#92400E">{{ nPromote }}</span> promote-grade</div>
+                  <div><span style="color:#9B9A92">3 ·</span> single DFT confirmation</div>
+                  <div><span style="color:#9B9A92">4 ·</span> synthesize / bench trial</div>
+                </div>
+                <div style="padding:11px 15px;border-top:1px solid #E6E4DF;display:flex;gap:8px"><button style="flex:1;font-size:12.5px;font-weight:500;padding:9px;border-radius:2px;border:1px solid #92400E;background:#B45309;color:#fff;cursor:pointer" onClick="{{ goCand }}">View ranked candidates →</button></div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div style="border:1px solid #E6E4DF;border-radius:2px;background:#fff;overflow:hidden">
+                <div style="padding:10px 13px;border-bottom:1px solid #E6E4DF;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600;color:#191917">Compute provenance</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#15803D"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#15803D;margin-right:5px"></span>{{ backendShort }}</span></div>
+                <div style="padding:13px 15px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#3C3B38;line-height:1.9">
+                  <div style="display:flex;justify-content:space-between"><span style="color:#9B9A92">backend</span><span>{{ prov.compute_backend }}</span></div>
+                  <div style="display:flex;justify-content:space-between"><span style="color:#9B9A92">model</span><span>{{ modelVal }}</span></div>
+                </div>
+                <div style="padding:11px 15px;border-top:1px solid #E6E4DF;background:#FAFAF8"><p style="font-size:11.5px;color:#6A6962;line-height:1.5">{{ prov.notes }}</p></div>
+              </div>
+
+              <div style="border:1px solid #E6E4DF;border-radius:2px;background:#fff;overflow:hidden">
+                <div style="padding:10px 13px;border-bottom:1px solid #E6E4DF;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600;color:#191917">Suggest a precursor</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#9B9A92">{{ suggestModeLabel }}</span></div>
+                <div style="padding:13px 15px">
+                  <p style="font-size:12px;color:#6A6962;margin-bottom:9px">Add a candidate to the screen by name or formula. Try one of these for {{ meta.film }}:</p>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px">
+                    <sc-for list="{{ suggestChips }}" as="s" hint-placeholder-count="4"><span onClick="{{ s.onClick }}" style="cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;background:#F5F4F1;color:#3C3B38;border:1px solid #E6E4DF;border-radius:2px;padding:4px 8px">＋ {{ s.label }}</span></sc-for>
+                  </div>
+                  <div style="display:flex;gap:7px;align-items:center;border:1px solid #D4D1CB;border-radius:2px;background:#fff;padding:7px 9px">
+                    <input ref="{{ setInputRef }}" onKeyDown="{{ onInputKey }}" placeholder="e.g. {{ placeholderEx }}" style="border:0;outline:none;flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;color:#3C3B38;background:transparent">
+                    <span onClick="{{ submitInput }}" style="cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#fff;background:#B45309;border-radius:2px;padding:4px 9px">Screen ↑</span>
+                  </div>
+                  <sc-if value="{{ suggestStatus.show }}" hint-placeholder-val="{{ true }}">
+                    <div style="margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ suggestStatus.color }};line-height:1.5">{{ suggestStatus.text }}</div>
+                  </sc-if>
+                  <sc-if value="{{ hasQueued }}" hint-placeholder-val="{{ true }}">
+                    <div style="margin-top:11px;border-top:1px solid #F0EEEA;padding-top:9px">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#9B9A92;margin-bottom:6px">Queued for screening</div>
+                      <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ queuedChips }}" as="q" hint-placeholder-count="2"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#FBF0E2;color:#92400E;border:1px solid #EBDCC2;border-radius:2px;padding:4px 8px">⚗ {{ q }}</span></sc-for></div>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ SCREEN: DETAIL ============ -->
+      <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:20px 22px 40px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;color:#9B9A92;text-transform:uppercase">05 · Precursor scorecard</div>
+          <div style="display:flex;align-items:flex-end;gap:14px;margin:4px 0 16px;flex-wrap:wrap">
+            <h1 style="font-family:'Instrument Serif',serif;font-size:36px;font-weight:400;color:#191917;line-height:1.1">{{ sel.name }}</h1>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#6A6962;padding-bottom:6px">{{ sel.formulaTxt }} · MW {{ sel.mwTxt }} · delivers {{ sel.deliversTxt }}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ sel.vColor }};background:{{ sel.vBg }};border:1px solid {{ sel.vBr }};border-radius:2px;padding:3px 8px;margin-bottom:7px">{{ sel.verdict }}</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start">
+            <!-- radar + meta -->
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div style="border:1px solid #E6E4DF;border-radius:2px;background:#fff;overflow:hidden">
+                <div style="padding:10px 13px;border-bottom:1px solid #E6E4DF;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600;color:#191917">Seven-axis profile</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#9B9A92">0 → 1</span></div>
+                <div style="background:#FAFAF8;padding:6px">
+                  <svg viewBox="0 0 300 300" style="width:100%;height:auto;display:block">
+                    <sc-for list="{{ radarRings }}" as="g" hint-placeholder-count="4"><circle cx="150" cy="150" r="{{ g.r }}" fill="none" stroke="#E6E4DF" stroke-width="1"></circle></sc-for>
+                    <sc-for list="{{ radarAxes }}" as="a" hint-placeholder-count="7"><line x1="150" y1="150" x2="{{ a.ax }}" y2="{{ a.ay }}" stroke="#E6E4DF" stroke-width="1"></line><text x="{{ a.lx }}" y="{{ a.ly }}" fill="#6A6962" font-family="'JetBrains Mono',monospace" font-size="9" text-anchor="{{ a.anchor }}">{{ a.label }}</text></sc-for>
+                    <polygon points="{{ radarPoly }}" fill="rgba(180,83,9,0.18)" stroke="#B45309" stroke-width="1.6"></polygon>
+                    <sc-for list="{{ radarAxes }}" as="a" hint-placeholder-count="7"><circle cx="{{ a.vx }}" cy="{{ a.vy }}" r="2.6" fill="{{ a.color }}"></circle></sc-for>
+                  </svg>
+                </div>
+                <div style="padding:9px 13px;border-top:1px solid #E6E4DF;display:flex;justify-content:space-between;align-items:center;background:#fff"><span style="font-size:12px;color:#6A6962">Overall viability</span><div style="display:flex;align-items:center;gap:8px"><div style="width:90px;height:6px;background:#F0EEEA;border-radius:2px;overflow:hidden"><div style="height:100%;background:{{ sel.overallColor }};width:{{ sel.scoreW }}"></div></div><span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#191917">{{ sel.overallTxt }}</span></div></div>
+              </div>
+              <sc-if value="{{ sel.hasWarn }}" hint-placeholder-val="{{ true }}">
+                <div style="border:1px solid #EBDCC2;border-radius:2px;background:#FBF0E2">
+                  <div style="padding:10px 13px;border-bottom:1px solid #EBDCC2;font-weight:600;color:#92400E">Warnings</div>
+                  <div style="padding:11px 13px"><sc-for list="{{ sel.warnings }}" as="w" hint-placeholder-count="2"><div style="font-size:12px;color:#92400E;line-height:1.5;margin-bottom:4px">⚠ {{ w }}</div></sc-for></div>
+                </div>
+              </sc-if>
+            </div>
+
+            <!-- scorecard table + next step + provenance -->
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div style="border:1px solid #E6E4DF;border-radius:2px;background:#fff;overflow:hidden">
+                <div style="padding:10px 13px;border-bottom:1px solid #E6E4DF;font-weight:600;color:#191917">Component scorecard — why it ranked here</div>
+                <table style="width:100%;border-collapse:collapse;font-size:12px">
+                  <tbody>
+                    <sc-for list="{{ sel.comps }}" as="c" hint-placeholder-count="7">
+                      <tr>
+                        <td style="padding:9px 13px;border-bottom:1px solid #F0EEEA;white-space:nowrap"><div style="color:#191917;font-weight:500">{{ c.label }}</div><div style="font-size:11px;color:#9B9A92">{{ c.hint }}</div></td>
+                        <td style="padding:9px 8px;border-bottom:1px solid #F0EEEA;width:120px"><div style="display:flex;align-items:center;gap:7px"><div style="flex:1;height:6px;background:#F0EEEA;border-radius:2px;overflow:hidden"><div style="height:100%;background:{{ c.color }};width:{{ c.w }}"></div></div><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#191917;font-weight:500">{{ c.scoreTxt }}</span></div></td>
+                        <td style="padding:9px 8px;border-bottom:1px solid #F0EEEA;text-align:center"><span title="{{ c.confLabel }}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ c.confColor }}">{{ c.confChar }}</span></td>
+                        <td style="padding:9px 13px;border-bottom:1px solid #F0EEEA;font-size:11.5px;color:#6A6962;line-height:1.45">{{ c.evidence }}</td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+
+              <div style="border:1px solid #92400E;border-radius:2px;background:#FBF0E2">
+                <div style="padding:10px 13px;border-bottom:1px solid #EBDCC2;font-weight:600;color:#92400E;display:flex;justify-content:space-between;align-items:center"><span>Recommended next step</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px">{{ sel.mlTxt }}</span></div>
+                <div style="padding:12px 13px;font-size:13px;color:#3C3B38;line-height:1.55">{{ sel.recommended_next_step }}</div>
+              </div>
+
+              <div style="border:1px solid #E6E4DF;border-radius:2px;background:#fff">
+                <div style="padding:10px 13px;border-bottom:1px solid #E6E4DF;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600;color:#191917">Provenance</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#15803D"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#15803D;margin-right:5px"></span>{{ backendShort }}</span></div>
+                <div style="padding:6px 13px 11px">
+                  <sc-for list="{{ provRows }}" as="p" hint-placeholder-count="5">
+                    <div style="display:flex;justify-content:space-between;gap:14px;padding:6px 0;border-bottom:1px solid #F0EEEA"><span style="color:#9B9A92;font-size:12px;white-space:nowrap">{{ p.k }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#3C3B38;text-align:right">{{ p.v }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </main>
+
+    <!-- ===== AGENT / SUGGEST RAIL ===== -->
+    <sc-if value="{{ agentOpen }}" hint-placeholder-val="{{ true }}">
+      <aside style="flex:0 0 300px;background:#fff;border-left:1px solid #E6E4DF;display:flex;flex-direction:column;min-height:0">
+        <div style="padding:11px 14px;border-bottom:1px solid #E6E4DF;display:flex;align-items:center;justify-content:space-between;flex:0 0 auto">
+          <div style="display:flex;align-items:center;gap:8px"><span style="width:7px;height:7px;border-radius:50%;background:#B45309;animation:dgblink 1.4s infinite"></span><span style="font-weight:600;color:#191917;font-size:13px">Run trace</span></div>
+          <span onClick="{{ toggleAgent }}" style="cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:10px;color:#9B9A92">HIDE</span>
+        </div>
+        <div style="flex:1 1 auto;overflow:auto;padding:6px 0">
+          <sc-for list="{{ log }}" as="l" hint-placeholder-count="6">
+            <div style="display:flex;gap:9px;padding:8px 14px;border-bottom:1px solid #F5F4F1">
+              <span style="width:7px;height:7px;border-radius:50%;background:{{ l.dot }};margin-top:5px;flex:0 0 auto"></span>
+              <div style="min-width:0"><div style="font-size:12px;color:{{ l.tx }};line-height:1.4">{{ l.x }}</div></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex:0 0 auto;border-top:1px solid #E6E4DF;padding:10px 12px;background:#FAFAF8">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#9B9A92;margin-bottom:7px">Suggest a precursor</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+            <sc-for list="{{ suggestChips }}" as="s" hint-placeholder-count="4"><span onClick="{{ s.onClick }}" style="cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:10.5px;background:#fff;color:#3C3B38;border:1px solid #E6E4DF;border-radius:2px;padding:3px 7px">＋ {{ s.label }}</span></sc-for>
+          </div>
+          <div style="display:flex;gap:7px;align-items:center;border:1px solid #D4D1CB;border-radius:2px;background:#fff;padding:7px 9px">
+            <input ref="{{ setRailInputRef }}" onKeyDown="{{ onRailInputKey }}" placeholder="name or formula…" style="border:0;outline:none;flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;color:#3C3B38;background:transparent">
+            <span onClick="{{ submitRailInput }}" style="cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;color:#B45309;font-weight:600">↑</span>
+          </div>
+          <sc-if value="{{ suggestStatus.show }}" hint-placeholder-val="{{ true }}">
+            <div style="margin-top:7px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:{{ suggestStatus.color }};line-height:1.45">{{ suggestStatus.text }}</div>
+          </sc-if>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#9B9A92;margin-top:8px;letter-spacing:.04em">DENSITYGEN · descriptor scorer · UMA-ready · pydantic</div>
+        </div>
+      </aside>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+var COMPONENT_ORDER = ["delivery","thermal_window","surface_reactivity","self_limiting","clean_ligand","byproduct","integration"];
+var COMPMETA = {
+  delivery:        {label:"Delivery",        short:"deliver", hint:"volatility / can it be delivered as vapor"},
+  thermal_window:  {label:"Thermal window",  short:"thermal", hint:"survives the line, self-limiting at the cap"},
+  surface_reactivity:{label:"Surface rxn",   short:"surface", hint:"chemisorbs / exchanges on the target surface"},
+  self_limiting:   {label:"Self-limiting",   short:"self-lim",hint:"steric saturation stops growth after a layer"},
+  clean_ligand:    {label:"Clean ligand",    short:"clean",   hint:"carbon / halide residue risk"},
+  byproduct:       {label:"Byproduct",       short:"byprod",  hint:"benign vs. etching / corrosive"},
+  integration:     {label:"Integration",     short:"gate",    hint:"hard gate: contains film element, no forbidden"}
+};
+// Real screening output baked in so the template renders standalone; `ald-screen
+// viz` overrides this with window.DENSITYGEN_DATA (which always wins).
+var EMBEDDED = {"meta": {"mode": "screen", "film": "HfO2", "co_reactant": "H2O", "temperature_max_c": 300.0, "forbidden_elements": ["Cl"], "surface": "SiO2 interfacial layer on a logic transistor gate", "use_ml_potential": false, "film_element": "Hf", "provenance": {"compute_backend": "local-descriptors", "model_name": null, "replicate_model": null, "notes": "Fast descriptor scoring. Pass use_ml_potential=true with fairchem-core installed (or a deployed Replicate model) for real UMA atomistic energies."}, "run_warnings": [], "generated_at": "embedded-sample", "api_url": null, "component_order": ["delivery", "thermal_window", "surface_reactivity", "self_limiting", "clean_ligand", "byproduct", "integration"]}, "candidates": [{"name": "TDMAH", "formula": "Hf[N(CH3)2]4", "molecular_weight": 354.798, "film_element": "Hf", "overall_score": 0.721, "components": [{"name": "delivery", "score": 0.628, "evidence": "MW=354.8 g/mol (volatility estimated from molecular weight)", "confidence": "estimated"}, {"name": "thermal_window", "score": 0.55, "evidence": "Thermal stability estimated from ligand class 'alkylamide'", "confidence": "estimated"}, {"name": "surface_reactivity", "score": 0.72, "evidence": "Ligand-exchange reactivity estimated for 'alkylamide' ligands with H2O (oxidant)", "confidence": "estimated"}, {"name": "self_limiting", "score": 0.95, "evidence": "Steric self-limiting estimated from 'alkylamide' ligand bulk", "confidence": "estimated"}, {"name": "clean_ligand", "score": 0.631, "evidence": "Residue watch: carbon fraction 62%", "confidence": "estimated"}, {"name": "byproduct", "score": 0.9, "evidence": "hydrocarbon/amine byproducts, benign", "confidence": "estimated"}, {"name": "integration", "score": 0.9, "evidence": "Delivers Hf; no forbidden elements.", "confidence": "estimated"}], "warnings": [], "recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.", "is_known_recipe": false, "origin": "input", "ml_energy_ev": null, "rank": 1}, {"name": "Hf(OtBu)4", "formula": "Hf(OC4H9)4", "molecular_weight": 470.95, "film_element": "Hf", "overall_score": 0.634, "components": [{"name": "delivery", "score": 0.416, "evidence": "MW=470.9 g/mol (volatility estimated from molecular weight)", "confidence": "estimated"}, {"name": "thermal_window", "score": 0.6, "evidence": "Thermal stability estimated from ligand class 'alkoxide'", "confidence": "estimated"}, {"name": "surface_reactivity", "score": 0.593, "evidence": "Ligand-exchange reactivity estimated for 'alkoxide' ligands with H2O (oxidant)", "confidence": "estimated"}, {"name": "self_limiting", "score": 0.8, "evidence": "Steric self-limiting estimated from 'alkoxide' ligand bulk", "confidence": "estimated"}, {"name": "clean_ligand", "score": 0.543, "evidence": "Residue watch: carbon fraction 76%", "confidence": "estimated"}, {"name": "byproduct", "score": 0.9, "evidence": "hydrocarbon/amine byproducts, benign", "confidence": "estimated"}, {"name": "integration", "score": 0.9, "evidence": "Delivers Hf; no forbidden elements.", "confidence": "estimated"}], "warnings": [], "recommended_next_step": "Borderline: run UMA on the weakest component before committing GPU/DFT budget; consider a co-reactant swap.", "is_known_recipe": false, "origin": "input", "ml_energy_ev": null, "rank": 2}, {"name": "HfCl4", "formula": "HfCl4", "molecular_weight": 320.29, "film_element": "Hf", "overall_score": 0.613, "components": [{"name": "delivery", "score": 0.167, "evidence": "Source/bubbler ~170 C (low; solid, sublimes, heated source ~150-200 C)", "confidence": "measured"}, {"name": "thermal_window", "score": 1.0, "evidence": "Decomposition onset 600 C is 300 C above process cap", "confidence": "measured"}, {"name": "surface_reactivity", "score": 0.72, "evidence": "Ligand-exchange reactivity estimated for 'halide' ligands with H2O (oxidant)", "confidence": "estimated"}, {"name": "self_limiting", "score": 0.657, "evidence": "Steric self-limiting estimated from 'halide' ligand bulk", "confidence": "estimated"}, {"name": "clean_ligand", "score": 0.85, "evidence": "Residue watch: chlorine residue", "confidence": "estimated"}, {"name": "byproduct", "score": 0.65, "evidence": "HCl byproduct, mildly corrosive", "confidence": "estimated"}, {"name": "integration", "score": 0.1, "evidence": "Contains forbidden element Cl.", "confidence": "measured"}], "warnings": ["Contains forbidden element Cl.", "Hazards: corrosive, HCl byproduct"], "recommended_next_step": "Borderline: run UMA on the weakest component before committing GPU/DFT budget; consider a co-reactant swap.", "is_known_recipe": true, "origin": "input", "ml_energy_ev": null, "rank": 3}, {"name": "TEMAH", "formula": "Hf[N(C2H5)(CH3)]4", "molecular_weight": 410.906, "film_element": "Hf", "overall_score": 0.612, "components": [{"name": "delivery", "score": 0.5, "evidence": "Source/bubbler ~110 C (moderate; heated source ~90-130 C)", "confidence": "measured"}, {"name": "thermal_window", "score": 0.133, "evidence": "Process cap 300 C exceeds decomposition onset 250 C", "confidence": "measured"}, {"name": "surface_reactivity", "score": 0.72, "evidence": "Ligand-exchange reactivity estimated for 'alkylamide' ligands with H2O (oxidant)", "confidence": "estimated"}, {"name": "self_limiting", "score": 0.95, "evidence": "Steric self-limiting estimated from 'alkylamide' ligand bulk", "confidence": "estimated"}, {"name": "clean_ligand", "score": 0.576, "evidence": "Residue watch: carbon fraction 71%", "confidence": "estimated"}, {"name": "byproduct", "score": 0.9, "evidence": "hydrocarbon/amine byproducts, benign", "confidence": "estimated"}, {"name": "integration", "score": 0.9, "evidence": "Delivers Hf; no forbidden elements.", "confidence": "measured"}], "warnings": ["Hazards: moisture sensitive"], "recommended_next_step": "Borderline: run UMA on the weakest component before committing GPU/DFT budget; consider a co-reactant swap.", "is_known_recipe": true, "origin": "input", "ml_energy_ev": null, "rank": 4}], "suggestions": ["HfCl4", "TEMAH", "Hf[N(CH3)2]4", "Hf(OC4H9)4"]};
+
+function dgInitialData(){
+  // window.DENSITYGEN_DATA always wins over the embedded sample when present.
+  if (typeof window !== "undefined" && window.DENSITYGEN_DATA) return window.DENSITYGEN_DATA;
+  return EMBEDDED;
+}
+
+class Component extends DCLogic {
+  state = {
+    screen:'candidates', sortKey:'overall', sortDir:'desc', selectedName:null,
+    tradeVar:'deliverClean', hoverName:null, agentOpen:true,
+    proposed:[], suggestStatus:null, data: dgInitialData()
+  };
+
+  // ---- helpers -------------------------------------------------------------
+  sCol(s){ return s>=0.7?'#15803D' : s>=0.45?'#A16207' : '#B91C1C'; }
+  fmt(x, d){ return (x===null||x===undefined||isNaN(x))? '—' : Number(x).toFixed(d===undefined?2:d); }
+  confMeta(c){
+    if(c==='measured') return {ch:'✓', col:'#15803D', label:'measured / literature'};
+    if(c==='unknown')  return {ch:'?', col:'#9B9A92', label:'unknown'};
+    return {ch:'~', col:'#A16207', label:'estimated'};
+  }
+  verdictOf(card){
+    if(card.hardFail) return {key:'REJECT · gate', col:'#B91C1C', bg:'#FBECEC', br:'#EBCFCF'};
+    var t = card.recommended_next_step || '';
+    if(t.indexOf('Reject')===0)       return {key:'REJECT', col:'#B91C1C', bg:'#FBECEC', br:'#EBCFCF'};
+    if(t.indexOf('Promote')===0)      return {key:'PROMOTE', col:'#15803D', bg:'#ECF6EF', br:'#CCE6D5'};
+    if(t.indexOf('Borderline')===0)   return {key:'BORDERLINE', col:'#A16207', bg:'#FBF0E2', br:'#EBDCC2'};
+    if(t.indexOf('Deprioritize')===0) return {key:'DEPRIORITIZE', col:'#6A6962', bg:'#F5F4F1', br:'#E6E4DF'};
+    return {key:'REVIEW', col:'#6A6962', bg:'#F5F4F1', br:'#E6E4DF'};
+  }
+  // Decorate one raw candidate with the display fields the template reads.
+  decorate(c){
+    var self=this;
+    var byName={}; (c.components||[]).forEach(function(x){ byName[x.name]=x; });
+    var order = (this.state.data.meta && this.state.data.meta.component_order) || COMPONENT_ORDER;
+    var comps = order.map(function(n){
+      var cc = byName[n] || {score:null, evidence:'—', confidence:'unknown'};
+      var m = COMPMETA[n] || {label:n, short:n, hint:''};
+      var cf = self.confMeta(cc.confidence);
+      var sc = (cc.score===null||cc.score===undefined)? null : cc.score;
+      return {
+        name:n, label:m.label, short:m.short, hint:m.hint,
+        score:sc, scoreTxt: self.fmt(sc,2),
+        w: ((sc||0)*100).toFixed(0)+'%',
+        color: sc===null? '#D4D1CB' : self.sCol(sc),
+        dot: sc===null? '#FFFFFF' : self.sCol(sc),
+        dotBorder: sc===null? '#D4D1CB' : self.sCol(sc),
+        evidence: cc.evidence, confChar: cf.ch, confColor: cf.col, confLabel: cf.label,
+        tip: m.label+': '+self.fmt(sc,2)+'  '+cf.ch+'  '+(cc.evidence||'')
+      };
+    });
+    var warnings = c.warnings || [];
+    var hardFail = (c.overall_score===0) || warnings.some(function(w){ return w.indexOf('HARD FAIL')>=0; });
+    var card = {
+      name:c.name, rank:c.rank,
+      formula:c.formula, formulaTxt: c.formula || '—',
+      molecular_weight:c.molecular_weight, mwTxt: (c.molecular_weight? self.fmt(c.molecular_weight,1) : '—'),
+      film_element:c.film_element, deliversTxt: c.film_element || '—',
+      overall_score:c.overall_score, overallTxt: self.fmt(c.overall_score,2),
+      scoreW: ((c.overall_score||0)*100).toFixed(0)+'%',
+      overallColor: self.sCol(c.overall_score||0),
+      is_known_recipe: !!c.is_known_recipe,
+      isProposed: c.origin==='proposed',
+      ml_energy_ev: (c.ml_energy_ev===undefined? null : c.ml_energy_ev),
+      mlTxt: (c.ml_energy_ev!==null && c.ml_energy_ev!==undefined)? (self.fmt(c.ml_energy_ev,3)+' eV') : '—',
+      recommended_next_step: c.recommended_next_step || '',
+      warnings: warnings, hasWarn: warnings.length>0,
+      comps: comps, hardFail: hardFail
+    };
+    var v = self.verdictOf(card);
+    card.verdict=v.key; card.vColor=v.col; card.vBg=v.bg; card.vBr=v.br;
+    // escalation ladder stage reached (descriptor -> UMA -> DFT -> expt)
+    var reached;
+    if(card.verdict.indexOf('REJECT')===0) reached=0;
+    else if(card.verdict==='DEPRIORITIZE') reached=1;
+    else if(card.verdict==='BORDERLINE') reached=2;
+    else if(card.verdict==='PROMOTE') reached=(card.ml_energy_ev!=null?3:2);
+    else reached=1;
+    card.ladder=['descriptor','UMA','DFT','expt'].map(function(lab,i){ var done=i<reached;
+      return {label:lab, dot:done?'#15803D':'#FFFFFF', border:done?'#15803D':'#D4D1CB', txt:done?'#3C3B38':'#B7B6AE'}; });
+    // selected-row highlight on the ranked table
+    var seld = card.name===self.state.selectedName;
+    card.rowBg = seld?'#FBF0E2':'#FFFFFF';
+    card.rowBar = seld?'inset 2px 0 0 #B45309':'none';
+    card.onSelect=function(){ self.setState({selectedName:card.name, screen:'detail'}); };
+    return card;
+  }
+
+  // ---- suggestion handling -------------------------------------------------
+  handleSuggest(raw){
+    var name=(raw||'').trim();
+    if(!name) return;
+    var looksFormula=/[0-9()\[\]]/.test(name);
+    var cand={name:name, formula: looksFormula? name : null};
+    var meta=(this.state.data && this.state.data.meta) || {};
+    var proposed=(this.state.proposed||[]).concat([cand]);
+    this.setState({proposed:proposed});
+    if(meta.api_url){ this.runLiveScreen(proposed); }
+    else {
+      this.setState({suggestStatus:{
+        show:true, color:'#92400E',
+        text:'Queued "'+name+'". This build has no live backend — run  ald-screen serve  to re-rank suggestions instantly, or add it to your request JSON and re-run  ald-screen viz.'
+      }});
+    }
+  }
+  runLiveScreen(proposed){
+    var self=this;
+    var D=this.state.data; var meta=D.meta||{};
+    var base=(D.candidates||[]).map(function(c){ return {name:c.name, formula:c.formula||null}; });
+    var seen={}, candidates=[];
+    base.concat(proposed).forEach(function(c){
+      var k=(c.name||'')+'|'+(c.formula||'');
+      if(seen[k]) return; seen[k]=1; candidates.push(c);
+    });
+    var req={ film:meta.film, co_reactant:meta.co_reactant, temperature_max_c:meta.temperature_max_c,
+      forbidden_elements:meta.forbidden_elements||[], surface:meta.surface,
+      use_ml_potential:!!meta.use_ml_potential, candidates:candidates };
+    this.setState({suggestStatus:{show:true, color:'#6A6962', text:'Screening '+candidates.length+' candidates…'}});
+    var url=String(meta.api_url).replace(/\/$/,'')+'/api/screen';
+    fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(req)})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(payload){
+        payload.meta = payload.meta || {};
+        if(!payload.meta.api_url) payload.meta.api_url = meta.api_url; // keep live mode sticky
+        self.setState({data:payload, suggestStatus:{show:true, color:'#15803D',
+          text:'Re-ranked '+((payload.candidates||[]).length)+' candidates.'}});
+      })
+      .catch(function(e){ self.setState({suggestStatus:{show:true, color:'#B91C1C',
+        text:'Live screen failed ('+(e.message||e)+'). Is  ald-screen serve  running at '+meta.api_url+'?'}}); });
+  }
+
+  // ---- main render ---------------------------------------------------------
+  renderVals(){
+    var self=this;
+    var S=this.state;
+    var D=S.data||{}; var meta=D.meta||{}; var prov=meta.provenance||{};
+    var go=function(sc){ return function(){ self.setState({screen:sc}); }; };
+
+    var navDefs=[
+      {id:'intake', icon:'▤', label:'Request'},
+      {id:'candidates', icon:'▦', label:'Ranked'},
+      {id:'pareto', icon:'◆', label:'Trade-offs'},
+      {id:'escalate', icon:'◷', label:'Escalate'},
+      {id:'detail', icon:'⬢', label:'Detail'}
+    ];
+    var navItems=navDefs.map(function(n){ var on=S.screen===n.id;
+      return { id:n.id, icon:n.icon, label:n.label, onClick:go(n.id),
+        style:'display:flex;flex-direction:column;align-items:center;gap:4px;padding:11px 4px;cursor:pointer;border:0;width:100%;font-family:Inter;background:'+(on?'#FBF0E2':'transparent')+';box-shadow:'+(on?'inset 2px 0 0 #B45309':'none')+';color:'+(on?'#92400E':'#6A6962'),
+        icon_style:'font-size:17px;line-height:1',
+        lab_style:'font-size:9px;letter-spacing:.04em;text-transform:uppercase;font-weight:'+(on?600:500) };
+    });
+
+    // decorate all candidates (already ranked by the pipeline)
+    var cards=(D.candidates||[]).map(function(c){ return self.decorate(c); });
+    var nCand=cards.length;
+
+    // selected card (default to top-ranked)
+    var sel=null;
+    if(S.selectedName) sel=cards.filter(function(c){ return c.name===S.selectedName; })[0];
+    if(!sel) sel=cards[0]||self.decorate({name:'—', components:[], overall_score:0, warnings:[]});
+
+    // ---- candidates table: sort ----
+    var sk=S.sortKey, sd=S.sortDir;
+    var valOf=function(card,key){
+      if(key==='name') return card.name||'';
+      if(key==='mw') return card.molecular_weight||0;
+      if(key==='overall') return card.overall_score||0;
+      var cc=card.comps.filter(function(x){ return x.name===key; })[0];
+      return cc&&cc.score!=null? cc.score : -1;
+    };
+    var rows=cards.slice().sort(function(a,b){
+      var x=valOf(a,sk), y=valOf(b,sk);
+      if(typeof x==='string'){ return sd==='asc'? x.localeCompare(y) : y.localeCompare(x); }
+      return sd==='asc'? x-y : y-x;
+    });
+    var ind={}; ['name','mw','overall'].forEach(function(k){ ind[k]= sk===k?(sd==='asc'?'↑':'↓'):''; });
+    var sort={}; ['name','mw','overall'].forEach(function(k){ sort[k]=function(){ self.toggleSort(k); }; });
+
+    // KPI tiles
+    var nPromote=cards.filter(function(c){ return c.verdict==='PROMOTE'; }).length;
+    var nBorderline=cards.filter(function(c){ return c.verdict==='BORDERLINE'; }).length;
+    var nDeprioritize=cards.filter(function(c){ return c.verdict==='DEPRIORITIZE'; }).length;
+    var nReject=cards.filter(function(c){ return c.verdict.indexOf('REJECT')===0; }).length;
+    var nMeasured=cards.filter(function(c){ return c.comps.some(function(x){ return x.confChar==='✓'; }); }).length;
+    var nHardFail=cards.filter(function(c){ return c.hardFail; }).length;
+    var top=cards[0];
+
+    // ---- trade-off scatter ----
+    var axisDefs={
+      deliverClean:{ x:'delivery', y:'clean_ligand', xl:'Delivery (volatility)', yl:'Clean ligand (low residue)', title:'DELIVERY × CLEAN LIGAND' },
+      reactThermal:{ x:'surface_reactivity', y:'thermal_window', xl:'Surface reactivity', yl:'Thermal window', title:'SURFACE RXN × THERMAL WINDOW' }
+    };
+    var tv=S.tradeVar;
+    var isRanking=(tv==='ranking');
+    var ax=axisDefs[tv]||axisDefs.deliverClean;
+    var compScore=function(card,name){ var c=card.comps.filter(function(x){return x.name===name;})[0]; return c&&c.score!=null?c.score:0; };
+    var PX=function(v){ return 62 + v*556; };
+    var PY=function(v){ return 404 - v*384; };
+    var scPts=cards.map(function(card){
+      var xv=compScore(card,ax.x), yv=compScore(card,ax.y);
+      return { card:card, xv:xv, yv:yv, px:PX(xv), py:PY(yv) };
+    });
+    // Pareto front: maximize both axes. p dominated if some q >= on both and > on one.
+    scPts.forEach(function(p){
+      p.dominated = scPts.some(function(q){ return q!==p && q.xv>=p.xv && q.yv>=p.yv && (q.xv>p.xv||q.yv>p.yv); });
+      p.front = !p.dominated;
+    });
+    var scatterPts=scPts.map(function(p){
+      var seld=p.card.name===sel.name;
+      return { px:p.px, py:p.py, rad: seld?8:(p.front?7:5.5),
+        fill: p.front?'#B45309':'#FFFFFF',
+        stroke: seld?'#191917':(p.front?'#92400E':'#C9C6C0'),
+        sw: seld?2.5:1.4, op: p.dominated?0.9:1,
+        onSelect:function(){ self.setState({selectedName:p.card.name, screen:'detail'}); },
+        onEnter:function(){ self.setState({hoverName:p.card.name}); },
+        onLeave:function(){ self.setState({hoverName:null}); } };
+    });
+    var frontSorted=scPts.filter(function(p){ return p.front; }).sort(function(a,b){ return a.xv-b.xv; });
+    var frontPts=frontSorted.map(function(p){ return p.px.toFixed(1)+','+p.py.toFixed(1); }).join(' ');
+    var scatterLabels=frontSorted.map(function(p){ return { px:p.px+10, py:p.py-8, name:p.card.name, color:'#92400E' }; });
+    var gridY=[0,0.25,0.5,0.75,1].map(function(v){ return {y:PY(v), label:v.toFixed(2)}; });
+    var gridX=[0,0.25,0.5,0.75,1].map(function(v){ return {x:PX(v), label:v.toFixed(2)}; });
+
+    // hover tooltip
+    var hp=scPts.filter(function(p){ return p.card.name===S.hoverName; })[0];
+    var hover = hp? { show:true, left:(hp.px+14)+'px', top:(hp.py-6)+'px', name:hp.card.name,
+      xLab:ax.xl.split(' ')[0], xVal:self.fmt(hp.xv,2), yLab:ax.yl.split(' ')[0], yVal:self.fmt(hp.yv,2),
+      front: hp.front?'Pareto-optimal':'dominated' } : { show:false };
+
+    // ranking bars
+    var rankBars=cards.map(function(card){
+      return { name:card.name, scoreTxt:card.overallTxt, w:card.scoreW, color:card.overallColor,
+        verdict:card.verdict, vColor:card.vColor, onSelect:card.onSelect };
+    });
+
+    // Escalation table reuses `rows` -- each decorated card already carries its
+    // ladder, verdict, mlTxt and recommended_next_step (see decorate()).
+
+    // ---- detail radar ----
+    var RAD=92, CX=150, CY=150;
+    var radarRings=[0.25,0.5,0.75,1].map(function(f){ return {r:(RAD*f).toFixed(1)}; });
+    var radarAxes=sel.comps.map(function(c,i){
+      var ang=(-90 + i*(360/sel.comps.length))*Math.PI/180;
+      var cs=Math.cos(ang), sn=Math.sin(ang);
+      var v=(c.score==null?0:c.score);
+      var lx=CX+cs*(RAD+16), ly=CY+sn*(RAD+16);
+      return { ax:(CX+cs*RAD).toFixed(1), ay:(CY+sn*RAD).toFixed(1),
+        vx:(CX+cs*RAD*v).toFixed(1), vy:(CY+sn*RAD*v).toFixed(1),
+        lx:lx.toFixed(1), ly:ly.toFixed(1),
+        anchor: cs>0.3?'start':(cs<-0.3?'end':'middle'),
+        label:c.short, color:c.color };
+    });
+    var radarPoly=radarAxes.map(function(a){ return a.vx+','+a.vy; }).join(' ');
+
+    // detail provenance rows
+    var provRows=[
+      {k:'Compute backend', v:prov.compute_backend||'—'},
+      {k:'Model', v:prov.model_name||'descriptor scorer'},
+      {k:'Formula', v:sel.formulaTxt},
+      {k:'Molecular weight', v:(sel.molecular_weight? self.fmt(sel.molecular_weight,3)+' g/mol':'—')},
+      {k:'Confidence', v:(sel.comps.some(function(x){return x.confChar==='✓';})?'has literature-measured axes':'all estimated')},
+      {k:'Origin', v: sel.isProposed?'proposed (inverse design)':'input candidate'}
+    ];
+
+    // ---- suggestion chips ----
+    var suggestions=D.suggestions||[];
+    var suggestChips=suggestions.map(function(s){ return { label:s, onClick:function(){ self.handleSuggest(s); } }; });
+    var queued=(S.proposed||[]).map(function(p){ return p.name; });
+
+    // ---- run trace / log ----
+    var log=[];
+    log.push({dot:'#15803D', tx:'#3C3B38', x:'Screened '+nCand+' candidates for '+meta.film+(meta.co_reactant?(' + '+meta.co_reactant):'')});
+    log.push({dot:'#6A6962', tx:'#3C3B38', x:'Backend: '+(prov.compute_backend||'—')});
+    if(top) log.push({dot:'#B45309', tx:'#3C3B38', x:'Top: '+top.name+' ('+top.overallTxt+') — '+top.verdict});
+    log.push({dot:'#A16207', tx:'#3C3B38', x:nPromote+' promote · '+nBorderline+' borderline · '+nDeprioritize+' deprioritize · '+nReject+' reject'});
+    (meta.run_warnings||[]).forEach(function(w){ log.push({dot:'#A16207', tx:'#92400E', x:w}); });
+    if(meta.api_url) log.push({dot:'#15803D', tx:'#15803D', x:'Live backend: '+meta.api_url});
+
+    // input refs (callback refs; uncontrolled inputs read on submit/Enter)
+    var setInputRef=function(el){ self._inp=el; };
+    var submitInput=function(){ if(self._inp){ self.handleSuggest(self._inp.value); self._inp.value=''; } };
+    var onInputKey=function(e){ if(e.key==='Enter'){ self.handleSuggest(e.target.value); e.target.value=''; } };
+    var setRailInputRef=function(el){ self._railInp=el; };
+    var submitRailInput=function(){ if(self._railInp){ self.handleSuggest(self._railInp.value); self._railInp.value=''; } };
+    var onRailInputKey=function(e){ if(e.key==='Enter'){ self.handleSuggest(e.target.value); e.target.value=''; } };
+
+    var t1=tv==='deliverClean', t2=tv==='reactThermal', t3=tv==='ranking';
+
+    return {
+      // shell
+      navItems:navItems, agentOpen:S.agentOpen, toggleAgent:function(){ self.setState(function(s){ return {agentOpen:!s.agentOpen}; }); },
+      log:log, meta:meta, prov:prov, nCand:nCand,
+      liveLabel: meta.api_url?'LIVE':'STATIC', backendShort:(prov.compute_backend||'—').toUpperCase(),
+      modeLabel:(meta.mode||'screen').toUpperCase(),
+      coReactantTxt: meta.co_reactant? (' · + '+meta.co_reactant) : '',
+      coReactantVal: meta.co_reactant||'—',
+      surfaceVal: meta.surface||'—',
+      tempCapTxt: (meta.temperature_max_c? (self.fmt(meta.temperature_max_c,0)+' °C') : 'none'),
+      funnelTxt: nCand+' screened → '+nPromote+' promote',
+      modelVal: prov.model_name||'(descriptor scorer)',
+      // screen flags
+      isIntake:S.screen==='intake', isCand:S.screen==='candidates', isPareto:S.screen==='pareto',
+      isEscalate:S.screen==='escalate', isDetail:S.screen==='detail',
+      goCand:go('candidates'), goPareto:go('pareto'), goEscalate:go('escalate'),
+      // candidates
+      rows:rows, ind:ind, sort:sort,
+      nPromote:nPromote, nBorderline:nBorderline, nDeprioritize:nDeprioritize, nReject:nReject,
+      nMeasured:nMeasured, nHardFail:nHardFail,
+      promoteW: nCand? Math.round(nPromote/nCand*100)+'%' : '0%',
+      measuredW: nCand? Math.round(nMeasured/nCand*100)+'%' : '0%',
+      failColor: nHardFail>0?'#B91C1C':'#9B9A92',
+      topName: top? top.name : '—', topScore: top? top.overallTxt : '—',
+      axisLegend: COMPONENT_ORDER.map(function(n){ return COMPMETA[n].short; }).join(' · '),
+      // trade-offs
+      isScatter: !isRanking, isRanking:isRanking,
+      setT1:function(){ self.setState({tradeVar:'deliverClean'}); },
+      setT2:function(){ self.setState({tradeVar:'reactThermal'}); },
+      setT3:function(){ self.setState({tradeVar:'ranking'}); },
+      t1bg:t1?'#FBF0E2':'#FFFFFF', t1fg:t1?'#92400E':'#6A6962',
+      t2bg:t2?'#FBF0E2':'#FFFFFF', t2fg:t2?'#92400E':'#6A6962',
+      t3bg:t3?'#FBF0E2':'#FFFFFF', t3fg:t3?'#92400E':'#6A6962',
+      scatterTitle:ax.title, xAxisLabel:ax.xl, yAxisLabel:ax.yl,
+      scatterPts:scatterPts, frontPts:frontPts, scatterLabels:scatterLabels,
+      gridX:gridX, gridY:gridY, hover:hover, rankBars:rankBars,
+      // escalation
+      // detail
+      sel:sel, radarRings:radarRings, radarAxes:radarAxes, radarPoly:radarPoly, provRows:provRows,
+      // intake
+      forbiddenChips: meta.forbidden_elements||[], noForbidden:(!(meta.forbidden_elements||[]).length),
+      suggestChips:suggestChips, queuedChips:queued, hasQueued:queued.length>0,
+      placeholderEx:(suggestions[0]||'WCl6'),
+      suggestModeLabel: meta.api_url?'LIVE RE-RANK':'QUEUE + CLI',
+      suggestStatus: S.suggestStatus || {show:false},
+      setInputRef:setInputRef, submitInput:submitInput, onInputKey:onInputKey,
+      setRailInputRef:setRailInputRef, submitRailInput:submitRailInput, onRailInputKey:onRailInputKey
+    };
+  }
+
+  toggleSort(key){
+    var numeric = key!=='name';
+    this.setState(function(s){
+      return s.sortKey===key
+        ? {sortDir: s.sortDir==='asc'?'desc':'asc'}
+        : {sortKey:key, sortDir: numeric?'desc':'asc'};
+    });
+  }
+}
+</script>
+</body>
+</html>

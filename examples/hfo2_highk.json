@@ -1,0 +1,13 @@
+{
+  "film": "HfO2",
+  "co_reactant": "H2O",
+  "temperature_max_c": 300,
+  "surface": "SiO2 interfacial layer on a logic transistor gate",
+  "forbidden_elements": ["Cl"],
+  "candidates": [
+    {"name": "TEMAH"},
+    {"name": "HfCl4"},
+    {"name": "TDMAH", "formula": "Hf[N(CH3)2]4"},
+    {"name": "Hf(OtBu)4", "formula": "Hf(OC4H9)4"}
+  ]
+}

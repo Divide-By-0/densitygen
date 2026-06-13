@@ -1,0 +1,152 @@
+"""Bridge the screening pipeline to the densitygen visualization.
+
+This serializes a :class:`ScreeningResponse` into the JSON contract the Fable
+"DC" component (``viz_assets/densitygen.dc.html``) renders, and assembles a
+self-contained, double-clickable bundle (the dc html + the ``support.js``
+runtime + a ``data.js`` that sets ``window.DENSITYGEN_DATA``).
+
+Design rule: **the browser never re-implements scoring.** It only displays what
+the Python pipeline computed. When a user suggests a new precursor, the viz
+either round-trips through the live server (which calls the same ``screen()``)
+or queues it with the exact CLI command -- so there is always exactly one
+source of truth for the numbers, never a JS shadow scorer that could disagree
+with the pipeline. That decoupling is the whole point of "the connection
+between our calculations and its display."
+"""
+
+from __future__ import annotations
+
+import json
+import shutil
+from pathlib import Path
+from typing import Optional
+
+from densitygen.schemas import ScreeningRequest, ScreeningResponse
+
+# Canonical component order -- matches the scoring weights in scoring.py and the
+# order the scorecard is assembled in screen.build_scorecard. The viz keys its
+# column layout off this, so keep it in sync if components are added/reordered.
+COMPONENT_ORDER = [
+    "delivery", "thermal_window", "surface_reactivity",
+    "self_limiting", "clean_ligand", "byproduct", "integration",
+]
+
+_ASSETS = Path(__file__).parent / "viz_assets"
+
+# Film-appropriate example precursors offered in the "suggest a precursor"
+# input. Curated where a real recipe set exists; otherwise a generic metal +
+# common-ligand set so the chips are always sensible for the target metal.
+_SUGGEST_BY_METAL: dict[str, list[str]] = {
+    "W":  ["WF6", "WCl6", "WCl5", "W(CO)6"],
+    "Mo": ["MoF6", "MoCl5", "Mo(CO)6", "MoO2Cl2"],
+    "Hf": ["HfCl4", "TEMAH", "Hf[N(CH3)2]4", "Hf(OC4H9)4"],
+    "Zr": ["ZrCl4", "Zr[N(CH3)2]4", "Zr(OC4H9)4"],
+    "Ti": ["TiCl4", "TDMAT", "Ti[N(C2H5)(CH3)]4", "Ti(OC3H7)4"],
+    "Al": ["TMA", "AlCl3", "Al(OC3H7)3"],
+    "Ta": ["TaCl5", "Ta[N(CH3)2]5"],
+    "Ru": ["Ru(C5H5)2", "RuCl3"],
+    "La": ["LaCl3", "La(C5H5)3"],
+    "Co": ["CoCl2", "Co(C5H5)2"],
+    "Nb": ["NbCl5", "NbF5"],
+}
+
+
+def default_suggestions(film: str, film_element: Optional[str] = None) -> list[str]:
+    """Example precursor strings to seed the suggestion chips for a film."""
+    metal = (film_element or film or "").rstrip("0123456789")
+    return _SUGGEST_BY_METAL.get(metal, [f"{metal}Cl4", f"{metal}(CO)6", f"{metal}F6"])
+
+
+def response_to_payload(
+    resp: ScreeningResponse,
+    *,
+    request: Optional[ScreeningRequest] = None,
+    mode: str = "screen",
+    generated_at: Optional[str] = None,
+    api_url: Optional[str] = None,
+    suggestions: Optional[list[str]] = None,
+) -> dict:
+    """Serialize a ScreeningResponse into the viz data contract.
+
+    The payload is intentionally a near-verbatim dump of the response plus the
+    request context the UI needs to render the intake screen -- no derived
+    display values (colors, bar widths, pass/fail), which the component computes
+    from the raw scores so the mapping stays inspectable.
+    """
+    film_element = None
+    for c in resp.ranked_candidates:
+        if c.film_element:
+            film_element = c.film_element
+            break
+
+    cands = []
+    for i, c in enumerate(resp.ranked_candidates, start=1):
+        d = c.model_dump()
+        d["rank"] = i
+        cands.append(d)
+
+    prov = resp.model_provenance.model_dump()
+
+    return {
+        "meta": {
+            "mode": mode,                       # "screen" | "design"
+            "film": resp.film,
+            "co_reactant": resp.co_reactant,
+            "temperature_max_c": (request.temperature_max_c if request else None),
+            "forbidden_elements": (list(request.forbidden_elements) if request else []),
+            "surface": (request.surface if request else None),
+            "use_ml_potential": (request.use_ml_potential if request else False),
+            "film_element": film_element,
+            "provenance": prov,
+            "run_warnings": list(resp.warnings),
+            "generated_at": generated_at,
+            # When set, the suggestion input POSTs here for a live re-rank; when
+            # null the input queues the precursor and shows the CLI command.
+            "api_url": api_url,
+            "component_order": COMPONENT_ORDER,
+        },
+        "candidates": cands,
+        "suggestions": (suggestions
+                        if suggestions is not None
+                        else default_suggestions(resp.film, film_element)),
+    }
+
+
+def _data_js(payload: dict) -> str:
+    # JSON is a strict subset of the JS object literal we need here; embedding it
+    # as `window.DENSITYGEN_DATA = <json>;` avoids any template/escaping games.
+    blob = json.dumps(payload, ensure_ascii=False, indent=2)
+    return (
+        "// GENERATED by densitygen.viz -- real screening output, do not hand-edit.\n"
+        "window.DENSITYGEN_DATA = " + blob + ";\n"
+    )
+
+
+def write_bundle(payload: dict, out_dir: str | Path) -> Path:
+    """Write a self-contained, openable viz bundle. Returns the html entrypoint.
+
+    Layout::
+
+        out_dir/
+          densitygen.dc.html   the precursor-centric component (template)
+          support.js           the DC runtime (React loader + template engine)
+          data.js              window.DENSITYGEN_DATA = <real screening output>
+
+    Open ``densitygen.dc.html`` in a browser. The component reads
+    ``window.DENSITYGEN_DATA``; if ``data.js`` is missing it falls back to the
+    embedded sample so the file still renders standalone.
+    """
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+
+    html_src = _ASSETS / "densitygen.dc.html"
+    js_src = _ASSETS / "support.js"
+    if not html_src.exists() or not js_src.exists():
+        raise FileNotFoundError(
+            f"viz assets missing under {_ASSETS}; expected densitygen.dc.html and support.js"
+        )
+
+    shutil.copyfile(html_src, out / "densitygen.dc.html")
+    shutil.copyfile(js_src, out / "support.js")
+    (out / "data.js").write_text(_data_js(payload), encoding="utf-8")
+    return out / "densitygen.dc.html"

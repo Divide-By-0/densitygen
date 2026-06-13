@@ -1,0 +1,13 @@
+{
+  "film": "W",
+  "co_reactant": "B2H6",
+  "temperature_max_c": 350,
+  "surface": "TiN nucleation liner in a contact via",
+  "candidates": [
+    {"name": "WF6"},
+    {"name": "WCl6", "formula": "WCl6"},
+    {"name": "WCl5", "formula": "WCl5"},
+    {"name": "W(CO)6", "formula": "W(CO)6"},
+    {"name": "TMA"}
+  ]
+}

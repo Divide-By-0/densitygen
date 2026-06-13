@@ -1,0 +1,12 @@
+.git
+**/__pycache__
+**/*.pyc
+.pytest_cache
+tests
+deploy
+densitygen_viz
+*.egg-info
+.venv
+venv
+build
+dist

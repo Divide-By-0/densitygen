@@ -1,0 +1,15 @@
+{
+  "film": "Mo",
+  "co_reactant": "H2 plasma",
+  "temperature_max_c": 400,
+  "surface": "low-resistance interconnect; replacing W to cut line resistance",
+  "use_ml_potential": false,
+  "candidates": [
+    {"name": "MoF6", "formula": "MoF6"},
+    {"name": "MoCl5", "formula": "MoCl5"},
+    {"name": "MoO2Cl2", "formula": "MoO2Cl2"},
+    {"name": "Mo(CO)6", "formula": "Mo(CO)6"},
+    {"name": "Mo(NMe2)4 candidate", "formula": "Mo[N(CH3)2]4"},
+    {"name": "MoCp2 candidate", "formula": "Mo(C5H5)2"}
+  ]
+}

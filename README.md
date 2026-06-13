@@ -1,62 +1,93 @@
-# densitygen
+# DensityGen
 
-**A materials-selection copilot for chip R&D — built on live Materials Project data.**
+**A materials-selection copilot for chip R&D.** Pick the right thin-film material — and the precursor to deposit it — for a next-generation chip in an afternoon instead of months.
 
-Pick the right thin-film material for a next-generation chip in an afternoon instead of months.
+### Why this matters (non-technical)
 
----
+Every modern chip — in your phone, in AI data centers, in defense systems — is a stack of *hundreds* of films, each only a few atoms thick, that insulate, conduct, or block. Each new chip generation forces a switch to new materials because the old ones physically stop working. Finding the replacement today takes a specialist **months** of slow, fragile physics simulations, one material at a time — and a wrong pick can blow a multi-year, multi-billion-dollar fab bet. DensityGen compresses that triage loop from weeks to seconds and reserves the expensive simulations for only the final finalists.
 
-## The pitch (for a non-technical audience)
-
-**Why this matters.** Every modern chip — the ones in your phone, in AI data centers, in defense systems — is a stack of *hundreds* of films, each only a few atoms thick. Each film has a job: insulate, conduct, or block. When chips shrink to the next generation, the old materials physically stop working, and engineers have to find a new one. Today that search is brutal: a specialist runs giant physics simulations one material at a time, babysitting calculations that take days each and break constantly. Choosing well takes **months**, and a wrong choice can cost a fab a multi-year, multi-billion-dollar bet.
-
-**How densitygen helps.** It turns a plain-English engineering requirement ("I need a leak-proof insulator for a 2nm transistor that survives a 1000°C bake") into a ranked shortlist of real candidate materials in seconds — pulling genuine, pre-computed physics data from the public **Materials Project** database, scoring every candidate against the spec, and showing the unavoidable trade-offs on one chart. An AI agent does the tedious orchestration (querying, filtering, ranking, troubleshooting), and the engineer makes the call. The expensive, slow simulations are reserved only for the final two or three finalists.
-
-**Who it's for.** Computational materials scientists and process-integration engineers in **semiconductor fabs** (Intel, TSMC, Samsung, Applied Materials), **defense/aerospace** materials R&D, and the **precursor-chemical suppliers** (Merck, Entegris, Air Liquide) whose multi-million-dollar bets ride on picking the right material.
+**Who it's for:** computational materials scientists and process engineers at semiconductor fabs (Intel, TSMC, Samsung, Applied Materials), defense/aerospace R&D, and the precursor-chemical suppliers (Merck, Entegris, Air Liquide) whose multi-million-dollar bets ride on the choice.
 
 ---
 
-## What's real vs. illustrative
+## This repo has two parts
 
-This is a hackathon build. We're honest about the boundary:
+| Part | What it is | Stack | Lives in |
+| --- | --- | --- | --- |
+| **1. Web copilot UI** | The interactive demo — translate a fab spec into a ranked candidate shortlist from **live Materials Project data**, explore trade-offs, and watch surface chemistry in 3D. | Next.js 16 · React 19 · Tailwind v4 · Three.js | `app/`, `components/`, `lib/` |
+| **2. Screening engine** | The Python decision engine — a seven-axis ALD-precursor viability scorecard that escalates survivors to a real ML interatomic potential (UMA / CHGNet) and proposes novel precursors via inverse design. | Python · fairchem/UMA · Cog/Replicate | `src/densitygen/`, `deploy/`, `web/` |
 
-| Layer | Source |
-| --- | --- |
-| Candidate properties — κ, band gap, stability, bulk modulus, crystal structure | **Live Materials Project REST API** (real `mp-…` IDs) |
-| Ranking, Pareto front, κ–E_g trade-off | computed in-app from the live data |
-| ALD precursor mapping, HER volcano set | curated domain knowledge (not in MP) |
-| DFT dispatch (Compute screen) | faithful **simulation** of an atomate2 → SLURM run |
-| Surface-chemistry 3D reaction + activation energy | **authored, MLIP-style illustrative** trajectory — labeled schematic, never presented as a live computation |
+The two are complementary demos of the same thesis (fast screening → escalate only the survivors). The web UI talks directly to Materials Project; the engine runs the atomistic physics.
 
-If the Materials Project API key is missing or the API is down, the app **silently falls back** to a bundled candidate set and flags it as `CACHED` — so a live demo never fails.
+---
 
-## The six screens
+# Part 1 — Web copilot UI (Next.js)
 
-1. **Intake** — natural-language fab spec → DFT-queryable property targets + hard constraints.
-2. **Candidates** — dense, sortable table of live MP candidates, ranked, with Pareto-front tags.
-3. **Trade-offs** — κ×E_g Pareto scatter, HER Sabatier volcano, and a constraint explorer.
-4. **Compute** — simulated DFT dispatch with custodian auto-handling convergence failures.
-5. **Material** — real relaxed crystal structure, computed properties, band sketch, full provenance.
-6. **Surface** — interactive 3D ALD half-reaction with a hero activation-energy readout.
+Turns the two finished design components into a deployable app wired to the **real Materials Project REST API**.
 
-## Architecture
+### Six screens
+1. **Intake** — natural-language fab spec → DFT-queryable property targets + hard constraints + periodic search space.
+2. **Candidates** — dense, sortable table of **live MP** dielectric-oxide candidates, composite-ranked, with Pareto-front tags.
+3. **Trade-offs** — κ×E_g Pareto scatter (real κ from `e_total`), HER Sabatier volcano, constraint explorer.
+4. **Compute** — faithful simulation of an atomate2 → SLURM DFT dispatch with custodian convergence handling.
+5. **Material** — **real relaxed crystal structure** (rotatable), computed properties, band sketch, provenance.
+6. **Surface** — interactive Three.js ALD half-reaction with a hero activation-energy readout and "Confirm with DFT →".
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Three.js. The Materials Project key lives server-side only (`MP_API_KEY`) and never reaches the browser. Maps to the intended 6-endpoint backend contract: `/candidates` (#2) and `/material/[id]` (#3) are live; spec-parse (#1), MLIP react/predict (#4), DFT dispatch (#5) and job stream (#6) are represented in the UI.
+### Real vs. illustrative (honest boundary)
+- **Live from Materials Project**: κ, band gap, formation energy, stability, bulk modulus, crystal structure (real `mp-…` IDs). The genuine κ–E_g anticorrelation shows up in the data.
+- **Curated** (not in MP): ALD precursor map, HER volcano set.
+- **Simulated / authored**: the DFT dispatch table; the 3D surface reaction + activation energy are an MLIP-style illustrative trajectory, clearly labeled *schematic / predicted ±0.08 eV, not DFT-confirmed*.
 
-## Getting started
+If `MP_API_KEY` is missing or MP errors, the app **silently falls back** to a bundled candidate set and flags it `CACHED` — so a live demo never fails.
 
+### Run it
 ```bash
 echo "MP_API_KEY=your_key_here" > .env.local   # free key: materialsproject.org/api
 npm install
-npm run dev
+npm run dev    # http://localhost:3000  (runs on the cached set without a key)
 ```
-
-Open [http://localhost:3000](http://localhost:3000). Without a key it runs on the cached set.
-
-## Deploy
-
-Deploys to **Vercel** as-is. Set `MP_API_KEY` in the project's environment variables.
+The MP key is server-side only (`MP_API_KEY`) and never reaches the browser. Deploys to **Vercel** as-is — set `MP_API_KEY` in project env.
 
 ---
 
-The original Python/Replicate ALD-screening backend plan lives in [`docs/backend-plan.md`](docs/backend-plan.md).
+# Part 2 — ML-Accelerated ALD Precursor Screening (Python)
+
+DensityGen's engine tells a chemist **which precursors to prioritize for a target ALD film**, fast. It runs a seven-axis viability scorecard over candidate precursor molecules and ranks them, escalating only survivors to real atomistic physics (Meta FAIR's **UMA** universal interatomic potential) and finally to DFT/experiment.
+
+> **Status: built and runnable** — working package, CLI, test suite, example requests, and Replicate/Cog deploy specs. The original phased plan is in [`PLAN.md`](PLAN.md); the chemist questions it answers are in [`SAMPLE_QUERIES.md`](SAMPLE_QUERIES.md).
+
+### Which AI model does the simulation
+
+**Primary: Meta FAIR UMA (`uma-s-1p2`) via `fairchem-core` v2** — a SOTA universal ML interatomic potential: energies/forces on any structure in seconds on one GPU, replacing DFT runs that take hours-to-days. One model, three task heads mapped onto ALD questions:
+
+| UMA task head | Computes | ALD question |
+|---|---|---|
+| `oc20` | adsorption energy on a slab | Does it chemisorb? Is it self-limiting? |
+| `omol` | molecular / ligand energetics | Stability, ligand-bond strength, clean removal |
+| `omat` | bulk/surface formation energy | Is the film/byproduct thermodynamically favorable? |
+
+**Backend chain (auto-selected by `get_backend()`):** Local UMA (gated on HuggingFace `facebook/UMA`) → hosted UMA on Replicate (`deploy/uma/`) → **CHGNet** (ungated, runs offline today, e.g. WF₆ = −43.47 eV) → descriptor scorer (no ML, always available). Swapping in UMA is a token-access change, not a code change.
+
+### Quickstart
+```bash
+pip install -e .                      # core: pydantic + numpy; runs immediately
+ald-screen demo                       # the WF6 -> W headline case
+ald-screen run examples/wf6_w.json    # full ranked scorecard
+ald-screen design --film W --co-reactant B2H6 --temperature-max-c 350   # inverse design
+ald-screen interconnects              # Ru/Mo/Co screen + propose precursors where none exist
+pip install -e .[ml] && ald-screen demo --uma   # real ML-potential energies (UMA→CHGNet fallback)
+```
+
+### The scorecard
+Seven components, each with an evidence string and confidence tag (`✓ measured` / `~ estimated` / `? unknown`): `delivery`, `thermal_window`, `surface_reactivity` (UMA `oc20`), `self_limiting`, `clean_ligand`, `byproduct`, `integration` (hard gates — must contain the film element). A precursor with no payload element hard-fails to 0. Calibrated against literature recipes (WF6→W, TMA→Al2O3, TEMAH/HfCl4→HfO2, TiCl4/TDMAT→TiN) in `tests/test_screen.py`.
+
+### Deploy the UMA model to Replicate
+```bash
+cd deploy/uma && cog login && cog push r8.im/<your-username>/uma-ald
+export DENSITYGEN_UMA_MODEL=<your-username>/uma-ald
+ald-screen run examples/wf6_w.json --uma
+```
+UMA weights are gated, so set `HF_TOKEN` as a **Replicate secret** (downloaded at cold start, not baked into the build). The CPU screener API can also be hosted via `deploy/screener/`.
+
+### What this does *not* claim
+ML potentials can be wrong on exotic organometallics, charged species, and transition states — every score carries provenance and an uncertainty tag. Volatility, shelf life, cost, and safety need chemical knowledge beyond atomistic energies; the tool flags `unknown` rather than inventing numbers. A good screen's job is to know what it does not know and say so.

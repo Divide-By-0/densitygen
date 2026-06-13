@@ -1,0 +1,17 @@
+# Cog spec for deploying Meta FAIR's UMA universal interatomic potential as a
+# Replicate model. This is the "supercomputer replacement": energies/forces
+# that would take hours of DFT come back in seconds on one GPU.
+#
+# Push with:  cd deploy/uma && cog login && cog push r8.im/<your-username>/uma-ald
+# Then point the screener at it:  export DENSITYGEN_UMA_MODEL=<username>/uma-ald
+build:
+  gpu: true
+  cuda: "12.4"
+  python_version: "3.12"
+  python_packages:
+    # REASON: torch must be a CUDA-matched wheel or the fairchem build fails.
+    - "torch==2.4.1"
+    - "fairchem-core==2.21.0"
+    - "ase==3.23.0"
+    - "numpy<2.0"
+predict: "predict.py:Predictor"
