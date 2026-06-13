@@ -56,6 +56,8 @@ DensityGen's engine tells a chemist **which precursors to prioritize for a targe
 
 > **Status: built and runnable** — working package, CLI, test suite, example requests, and Replicate/Cog deploy specs. The original phased plan is in [`PLAN.md`](PLAN.md); the chemist questions it answers are in [`SAMPLE_QUERIES.md`](SAMPLE_QUERIES.md).
 
+> **Built with Claude Code.** Every human prompt across the build sessions is exported, in order, to [`prompts.md`](prompts.md) — the project's full instruction history.
+
 ### Which AI model does the simulation
 
 **Primary: Meta FAIR UMA (`uma-s-1p2`) via `fairchem-core` v2** — a SOTA universal ML interatomic potential: energies/forces on any structure in seconds on one GPU, replacing DFT runs that take hours-to-days. One model, three task heads mapped onto ALD questions:
@@ -79,7 +81,15 @@ pip install -e .[ml] && ald-screen demo --uma   # real ML-potential energies (UM
 ```
 
 ### The scorecard
-Seven components, each with an evidence string and confidence tag (`✓ measured` / `~ estimated` / `? unknown`): `delivery`, `thermal_window`, `surface_reactivity` (UMA `oc20`), `self_limiting`, `clean_ligand`, `byproduct`, `integration` (hard gates — must contain the film element). A precursor with no payload element hard-fails to 0. Calibrated against literature recipes (WF6→W, TMA→Al2O3, TEMAH/HfCl4→HfO2, TiCl4/TDMAT→TiN) in `tests/test_screen.py`.
+Seven components, each with an evidence string and confidence tag (`✓ measured` / `~ estimated` / `? unknown`): `delivery`, `thermal_window`, `surface_reactivity` (UMA `oc20`), `self_limiting`, `clean_ligand`, `byproduct`, `integration` (hard gates — must contain the film element). A precursor with no payload element hard-fails to 0. Calibrated against literature recipes (WF6→W, TMA→Al2O3, TEMAH/HfCl4→HfO2, TiCl4/TDMAT→TiN) in `tests/test_screen.py`. Candidates can be named by their formula (e.g. `WCl6`, `W(CO)6`) — the resolver parses the name when it isn't a curated precursor.
+
+### Visualization
+The screening results drive an interactive Fable "DC" dashboard — a ranked scorecard, a Pareto trade-off explorer, the cheap-first escalation ladder, and a per-precursor 7-axis radar with full evidence/provenance. The view never re-implements scoring; it renders exactly what the pipeline computed.
+```bash
+ald-screen viz examples/wf6_w.json --out densitygen_viz   # bake a self-contained bundle, open densitygen_viz/densitygen.dc.html
+ald-screen serve examples/wf6_w.json                       # same, but live: suggest a precursor in the rail -> instant re-rank via /api/screen
+```
+The right-rail "suggest a precursor" input (with example chips) adds candidates: with `serve` it re-ranks live through the same `screen()`; from the static bundle it queues them and shows the CLI to re-run. The same dashboard is hosted by the web app at `/viz` (`web/app.py`).
 
 ### Deploy the UMA model to Replicate
 ```bash
