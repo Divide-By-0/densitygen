@@ -332,6 +332,7 @@ export function SurfaceChemistry() {
 
     e.cleanup = () => {
       cancelAnimationFrame(e.raf!);
+      window.clearTimeout((e as Engine & { sb?: number }).sb);
       window.removeEventListener("resize", onResize);
       st.removeEventListener("pointerdown", down);
       st.removeEventListener("pointermove", move);

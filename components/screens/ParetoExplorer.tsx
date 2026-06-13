@@ -31,7 +31,9 @@ export function ParetoExplorer({ candidates }: { candidates: Candidate[] }) {
     X0 + ((Math.log10(k) - Math.log10(3)) / (Math.log10(kMax) - Math.log10(3))) * (X1 - X0);
   const pyE = (e: number) => Y1 - (e / egMax) * (Y1 - Y0);
 
-  const sel = candidates.find((c) => c.id === selId) ?? pts[0];
+  // fall back to the full candidate set (not just κ-bearing points) so the
+  // readout never dereferences undefined when no candidate has dielectric data
+  const sel = candidates.find((c) => c.id === selId) ?? candidates[0];
   const inSpec = candidates.filter((c) => c.inSpec).length;
 
   const frontPts = pts

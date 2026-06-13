@@ -29,6 +29,9 @@ export const getCandidates = cache(async (): Promise<CandidateResult> => {
       _limit: 60,
     });
     const rows = json.data.map(parseSummaryDoc);
+    // An empty live result is as unusable as an error — fall back rather than
+    // ship a candidate-less app (which would crash the Material screen).
+    if (rows.length === 0) throw new Error("MP returned no candidates");
     const candidates = scoreCandidates(rows);
     return {
       candidates,

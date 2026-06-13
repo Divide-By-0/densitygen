@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Python screening engine + its vendored design-tool assets — not part of
+    // the Next.js web app; linted with their own tooling, not eslint.
+    "src/**",
+    "web/**",
+    "deploy/**",
   ]),
 ]);
 
