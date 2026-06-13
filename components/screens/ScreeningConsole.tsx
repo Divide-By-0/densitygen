@@ -15,14 +15,17 @@ export function ScreeningConsole({
   initialKey,
   initialFilm,
   initialResponse,
+  initialSource = "live",
 }: {
   initialKey: string;
   initialFilm: string;
   initialResponse: ScreenResponse | null;
+  initialSource?: "live" | "cached";
 }) {
   const [key, setKey] = useState(initialKey);
   const [film, setFilm] = useState(initialFilm);
   const [resp, setResp] = useState<ScreenResponse | null>(initialResponse);
+  const [source, setSource] = useState<"live" | "cached">(initialSource);
   const [sel, setSel] = useState(0);
   const [loading, setLoading] = useState(false);
 
@@ -38,6 +41,7 @@ export function ScreeningConsole({
       if (r.supported) {
         setResp(r.response);
         setFilm(r.film);
+        setSource(r.source ?? "live");
         setSel(0);
       }
     } finally {
@@ -63,8 +67,11 @@ export function ScreeningConsole({
             scenario; the engine ranks every precursor in one call.
           </p>
         </div>
-        <div className="mono flex items-center gap-1.5 text-[11px]" style={{ color: "var(--color-ok)" }}>
-          <span className="dot-blink" /> LIVE ENGINE · {backend}
+        <div
+          className="mono flex items-center gap-1.5 text-[11px]"
+          style={{ color: source === "live" ? "var(--color-ok)" : "var(--color-warn)" }}
+        >
+          <span className="dot-blink" /> {source === "live" ? "LIVE ENGINE" : "CACHED ENGINE"} · {backend}
         </div>
       </div>
 

@@ -9,6 +9,7 @@ const ITEMS = [
   { href: "/trade-offs", icon: "◆", label: "Trade-offs" },
   { href: "/material", icon: "⬢", label: "Material" },
   { href: "/surface", icon: "⌬", label: "Surface" },
+  { href: "/architecture", icon: "⊞", label: "Arch" },
 ];
 
 export function NavRail() {

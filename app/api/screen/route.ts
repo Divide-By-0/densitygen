@@ -1,5 +1,6 @@
 import { getScorecard } from "@/lib/engine/queries";
 import { screenPrecursors } from "@/lib/engine/client";
+import { cachedScreen } from "@/lib/engine/cache";
 import type { CandidateInput } from "@/lib/engine/types";
 
 // POST /api/screen
@@ -30,8 +31,10 @@ export async function POST(req: Request) {
         candidates: body.candidates,
         use_ml_potential: body.useMl ?? false,
       });
-      return Response.json({ supported: true, film: body.film, response });
+      return Response.json({ supported: true, film: body.film, response, source: "live" });
     } catch {
+      const snap = cachedScreen(body.film);
+      if (snap) return Response.json({ supported: true, film: body.film, response: snap, source: "cached" });
       return Response.json({ supported: false, error: "engine unavailable" }, { status: 200 });
     }
   }

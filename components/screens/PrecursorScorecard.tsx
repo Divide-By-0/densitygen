@@ -34,10 +34,11 @@ export function PrecursorScorecard({
     );
   }
 
-  const { response, film } = result;
+  const { response, film, source } = result;
   const ranked = response.ranked_candidates;
   const top = ranked[0];
   const backend = response.model_provenance?.compute_backend ?? "engine";
+  const live = source === "live";
 
   return (
     <div className="card overflow-hidden">
@@ -45,8 +46,8 @@ export function PrecursorScorecard({
         <span>
           ALD precursor screening · <span className="mono text-amber-deep">{sub(film)}</span>
         </span>
-        <span className="mono flex items-center gap-1.5 text-[10px]" style={{ color: "var(--color-ok)" }}>
-          <span className="dot-blink" /> LIVE ENGINE · {backend}
+        <span className="mono flex items-center gap-1.5 text-[10px]" style={{ color: live ? "var(--color-ok)" : "var(--color-warn)" }}>
+          <span className="dot-blink" /> {live ? "LIVE ENGINE" : "CACHED ENGINE"} · {backend}
         </span>
       </div>
 

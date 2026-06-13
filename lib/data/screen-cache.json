@@ -1,0 +1,1472 @@
+{
+"Mo": {
+"film": "Mo",
+"co_reactant": "H2 plasma",
+"ranked_candidates": [
+{
+"name": "MoCl5",
+"formula": "MoCl5",
+"molecular_weight": 273.2,
+"film_element": "Mo",
+"overall_score": 0.799,
+"components": [
+{
+"name": "delivery",
+"score": 0.876,
+"evidence": "MW=273.2 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.85,
+"evidence": "Thermal stability estimated from ligand class 'halide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.75,
+"evidence": "Ligand-exchange reactivity estimated for 'halide' ligands with H2 plasma (reductant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.671,
+"evidence": "Steric self-limiting estimated from 'halide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.85,
+"evidence": "Residue watch: chlorine residue",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.65,
+"evidence": "HCl byproduct, mildly corrosive",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Mo; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "MoF6",
+"formula": "MoF6",
+"molecular_weight": 209.938,
+"film_element": "Mo",
+"overall_score": 0.79,
+"components": [
+{
+"name": "delivery",
+"score": 0.991,
+"evidence": "MW=209.9 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.85,
+"evidence": "Thermal stability estimated from ligand class 'halide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.75,
+"evidence": "Ligand-exchange reactivity estimated for 'halide' ligands with H2 plasma (reductant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.686,
+"evidence": "Steric self-limiting estimated from 'halide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.75,
+"evidence": "Residue watch: fluorine residue/HF risk",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.45,
+"evidence": "HF byproduct etches oxides/Si",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Mo; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "Mo(NMe2)4",
+"formula": "Mo[N(CH3)2]4",
+"molecular_weight": 272.258,
+"film_element": "Mo",
+"overall_score": 0.756,
+"components": [
+{
+"name": "delivery",
+"score": 0.778,
+"evidence": "MW=272.3 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.55,
+"evidence": "Thermal stability estimated from ligand class 'alkylamide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.75,
+"evidence": "Ligand-exchange reactivity estimated for 'alkylamide' ligands with H2 plasma (reductant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.95,
+"evidence": "Steric self-limiting estimated from 'alkylamide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.631,
+"evidence": "Residue watch: carbon fraction 62%",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "hydrocarbon/amine byproducts, benign",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Mo; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "MoO2Cl2",
+"formula": "MoO2Cl2",
+"molecular_weight": 198.848,
+"film_element": "Mo",
+"overall_score": 0.661,
+"components": [
+{
+"name": "delivery",
+"score": 0.361,
+"evidence": "Source/bubbler ~135 C (moderate; solid, sublimes ~120-150 C)",
+"confidence": "measured"
+},
+{
+"name": "thermal_window",
+"score": 0.667,
+"evidence": "Decomposition onset 400 C is 50 C above process cap",
+"confidence": "measured"
+},
+{
+"name": "surface_reactivity",
+"score": 0.75,
+"evidence": "Ligand-exchange reactivity estimated for 'halide' ligands with H2 plasma (reductant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.657,
+"evidence": "Steric self-limiting estimated from 'halide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.85,
+"evidence": "Residue watch: chlorine residue",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.65,
+"evidence": "HCl byproduct, mildly corrosive",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Mo; no forbidden elements.",
+"confidence": "measured"
+}
+],
+"warnings": [
+"Hazards: corrosive, HCl byproduct"
+],
+"recommended_next_step": "Borderline: run UMA on the weakest component before committing GPU/DFT budget; consider a co-reactant swap.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "Mo(CO)6",
+"formula": "Mo(CO)6",
+"molecular_weight": 264.01,
+"film_element": "Mo",
+"overall_score": 0.614,
+"components": [
+{
+"name": "delivery",
+"score": 0.806,
+"evidence": "Source/bubbler ~55 C (moderate; solid, sublimes ~40-70 C)",
+"confidence": "measured"
+},
+{
+"name": "thermal_window",
+"score": 0.0,
+"evidence": "Process cap 350 C exceeds decomposition onset 150 C",
+"confidence": "measured"
+},
+{
+"name": "surface_reactivity",
+"score": 0.58,
+"evidence": "Ligand-exchange reactivity estimated for 'carbonyl' ligands with H2 plasma (reductant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.7,
+"evidence": "Steric self-limiting estimated from 'carbonyl' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.723,
+"evidence": "Residue watch: carbon fraction 46%",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "Benign byproducts",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Mo; no forbidden elements.",
+"confidence": "measured"
+}
+],
+"warnings": [
+"Hazards: toxic CO release"
+],
+"recommended_next_step": "Borderline: run UMA on the weakest component before committing GPU/DFT budget; consider a co-reactant swap.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+}
+],
+"warnings": [],
+"model_provenance": {
+"compute_backend": "local-descriptors",
+"model_name": null,
+"replicate_model": null,
+"notes": "Fast descriptor scoring. Pass use_ml_potential=true with fairchem-core installed (or a deployed Replicate model) for real UMA atomistic energies."
+},
+"billing": null
+},
+"HfO2": {
+"film": "HfO2",
+"co_reactant": "H2O",
+"ranked_candidates": [
+{
+"name": "TDMAH",
+"formula": "Hf[N(CH3)2]4",
+"molecular_weight": 354.798,
+"film_element": "Hf",
+"overall_score": 0.721,
+"components": [
+{
+"name": "delivery",
+"score": 0.628,
+"evidence": "MW=354.8 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.55,
+"evidence": "Thermal stability estimated from ligand class 'alkylamide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.72,
+"evidence": "Ligand-exchange reactivity estimated for 'alkylamide' ligands with H2O (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.95,
+"evidence": "Steric self-limiting estimated from 'alkylamide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.631,
+"evidence": "Residue watch: carbon fraction 62%",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "hydrocarbon/amine byproducts, benign",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Hf; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "HfCl4",
+"formula": "HfCl4",
+"molecular_weight": 320.29,
+"film_element": "Hf",
+"overall_score": 0.677,
+"components": [
+{
+"name": "delivery",
+"score": 0.167,
+"evidence": "Source/bubbler ~170 C (low; solid, sublimes, heated source ~150-200 C)",
+"confidence": "measured"
+},
+{
+"name": "thermal_window",
+"score": 1.0,
+"evidence": "Decomposition onset 600 C is 250 C above process cap",
+"confidence": "measured"
+},
+{
+"name": "surface_reactivity",
+"score": 0.72,
+"evidence": "Ligand-exchange reactivity estimated for 'halide' ligands with H2O (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.657,
+"evidence": "Steric self-limiting estimated from 'halide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.85,
+"evidence": "Residue watch: chlorine residue",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.65,
+"evidence": "HCl byproduct, mildly corrosive",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Hf; no forbidden elements.",
+"confidence": "measured"
+}
+],
+"warnings": [
+"Hazards: corrosive, HCl byproduct"
+],
+"recommended_next_step": "Borderline: run UMA on the weakest component before committing GPU/DFT budget; consider a co-reactant swap.",
+"is_known_recipe": true,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "Hf(OtBu)4",
+"formula": "Hf(OC4H9)4",
+"molecular_weight": 470.95,
+"film_element": "Hf",
+"overall_score": 0.634,
+"components": [
+{
+"name": "delivery",
+"score": 0.416,
+"evidence": "MW=470.9 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.6,
+"evidence": "Thermal stability estimated from ligand class 'alkoxide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.593,
+"evidence": "Ligand-exchange reactivity estimated for 'alkoxide' ligands with H2O (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.8,
+"evidence": "Steric self-limiting estimated from 'alkoxide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.543,
+"evidence": "Residue watch: carbon fraction 76%",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "hydrocarbon/amine byproducts, benign",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Hf; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Borderline: run UMA on the weakest component before committing GPU/DFT budget; consider a co-reactant swap.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "TEMAH",
+"formula": "Hf[N(C2H5)(CH3)]4",
+"molecular_weight": 410.906,
+"film_element": "Hf",
+"overall_score": 0.589,
+"components": [
+{
+"name": "delivery",
+"score": 0.5,
+"evidence": "Source/bubbler ~110 C (moderate; heated source ~90-130 C)",
+"confidence": "measured"
+},
+{
+"name": "thermal_window",
+"score": 0.0,
+"evidence": "Process cap 350 C exceeds decomposition onset 250 C",
+"confidence": "measured"
+},
+{
+"name": "surface_reactivity",
+"score": 0.72,
+"evidence": "Ligand-exchange reactivity estimated for 'alkylamide' ligands with H2O (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.95,
+"evidence": "Steric self-limiting estimated from 'alkylamide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.576,
+"evidence": "Residue watch: carbon fraction 71%",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "hydrocarbon/amine byproducts, benign",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Hf; no forbidden elements.",
+"confidence": "measured"
+}
+],
+"warnings": [
+"Hazards: moisture sensitive"
+],
+"recommended_next_step": "Borderline: run UMA on the weakest component before committing GPU/DFT budget; consider a co-reactant swap.",
+"is_known_recipe": true,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+}
+],
+"warnings": [],
+"model_provenance": {
+"compute_backend": "local-descriptors",
+"model_name": null,
+"replicate_model": null,
+"notes": "Fast descriptor scoring. Pass use_ml_potential=true with fairchem-core installed (or a deployed Replicate model) for real UMA atomistic energies."
+},
+"billing": null
+},
+"Al2O3": {
+"film": "Al2O3",
+"co_reactant": "H2O",
+"ranked_candidates": [
+{
+"name": "AlCl3",
+"formula": "AlCl3",
+"molecular_weight": 133.332,
+"film_element": "Al",
+"overall_score": 0.815,
+"components": [
+{
+"name": "delivery",
+"score": 1.0,
+"evidence": "MW=133.3 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.85,
+"evidence": "Thermal stability estimated from ligand class 'halide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.72,
+"evidence": "Ligand-exchange reactivity estimated for 'halide' ligands with H2O (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.643,
+"evidence": "Steric self-limiting estimated from 'halide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.85,
+"evidence": "Residue watch: chlorine residue",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.65,
+"evidence": "HCl byproduct, mildly corrosive",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Al; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "Al(OtBu)3",
+"formula": "Al(OC4H9)3",
+"molecular_weight": 246.327,
+"film_element": "Al",
+"overall_score": 0.717,
+"components": [
+{
+"name": "delivery",
+"score": 0.825,
+"evidence": "MW=246.3 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.6,
+"evidence": "Thermal stability estimated from ligand class 'alkoxide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.593,
+"evidence": "Ligand-exchange reactivity estimated for 'alkoxide' ligands with H2O (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.8,
+"evidence": "Steric self-limiting estimated from 'alkoxide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.55,
+"evidence": "Residue watch: carbon fraction 75%",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "hydrocarbon/amine byproducts, benign",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Al; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "TMA",
+"formula": "Al(CH3)3",
+"molecular_weight": 72.087,
+"film_element": "Al",
+"overall_score": 0.689,
+"components": [
+{
+"name": "delivery",
+"score": 1.0,
+"evidence": "Source/bubbler ~20 C (high; bp ~125 C, strong vapor pressure at RT)",
+"confidence": "measured"
+},
+{
+"name": "thermal_window",
+"score": 0.133,
+"evidence": "Process cap 350 C exceeds decomposition onset 300 C",
+"confidence": "measured"
+},
+{
+"name": "surface_reactivity",
+"score": 0.762,
+"evidence": "Ligand-exchange reactivity estimated for 'alkyl' ligands with H2O (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.743,
+"evidence": "Steric self-limiting estimated from 'alkyl' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.55,
+"evidence": "Residue watch: carbon fraction 75%",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "hydrocarbon/amine byproducts, benign",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Al; no forbidden elements.",
+"confidence": "measured"
+}
+],
+"warnings": [
+"Hazards: pyrophoric"
+],
+"recommended_next_step": "Borderline: run UMA on the weakest component before committing GPU/DFT budget; consider a co-reactant swap.",
+"is_known_recipe": true,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+}
+],
+"warnings": [],
+"model_provenance": {
+"compute_backend": "local-descriptors",
+"model_name": null,
+"replicate_model": null,
+"notes": "Fast descriptor scoring. Pass use_ml_potential=true with fairchem-core installed (or a deployed Replicate model) for real UMA atomistic energies."
+},
+"billing": null
+},
+"TiO2": {
+"film": "TiO2",
+"co_reactant": "H2O",
+"ranked_candidates": [
+{
+"name": "TiCl4",
+"formula": "TiCl4",
+"molecular_weight": 189.667,
+"film_element": "Ti",
+"overall_score": 0.844,
+"components": [
+{
+"name": "delivery",
+"score": 1.0,
+"evidence": "Source/bubbler ~20 C (high; liquid, bp ~136 C)",
+"confidence": "measured"
+},
+{
+"name": "thermal_window",
+"score": 1.0,
+"evidence": "Decomposition onset 600 C is 250 C above process cap",
+"confidence": "measured"
+},
+{
+"name": "surface_reactivity",
+"score": 0.72,
+"evidence": "Ligand-exchange reactivity estimated for 'halide' ligands with H2O (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.657,
+"evidence": "Steric self-limiting estimated from 'halide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.85,
+"evidence": "Residue watch: chlorine residue",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.65,
+"evidence": "HCl byproduct, mildly corrosive",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Ti; no forbidden elements.",
+"confidence": "measured"
+}
+],
+"warnings": [
+"Hazards: corrosive, HCl byproduct, moisture sensitive"
+],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "TEMAT",
+"formula": "Ti[N(CH3)(C2H5)]4",
+"molecular_weight": 280.283,
+"film_element": "Ti",
+"overall_score": 0.74,
+"components": [
+{
+"name": "delivery",
+"score": 0.763,
+"evidence": "MW=280.3 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.55,
+"evidence": "Thermal stability estimated from ligand class 'alkylamide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.72,
+"evidence": "Ligand-exchange reactivity estimated for 'alkylamide' ligands with H2O (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.95,
+"evidence": "Steric self-limiting estimated from 'alkylamide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.576,
+"evidence": "Residue watch: carbon fraction 71%",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "hydrocarbon/amine byproducts, benign",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Ti; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "TTIP",
+"formula": "Ti(OC3H7)4",
+"molecular_weight": 284.219,
+"film_element": "Ti",
+"overall_score": 0.707,
+"components": [
+{
+"name": "delivery",
+"score": 0.756,
+"evidence": "MW=284.2 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.6,
+"evidence": "Thermal stability estimated from ligand class 'alkoxide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.593,
+"evidence": "Ligand-exchange reactivity estimated for 'alkoxide' ligands with H2O (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.8,
+"evidence": "Steric self-limiting estimated from 'alkoxide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.576,
+"evidence": "Residue watch: carbon fraction 71%",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "hydrocarbon/amine byproducts, benign",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Ti; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "TDMAT",
+"formula": "Ti[N(CH3)2]4",
+"molecular_weight": 224.175,
+"film_element": "Ti",
+"overall_score": 0.646,
+"components": [
+{
+"name": "delivery",
+"score": 0.75,
+"evidence": "Source/bubbler ~65 C (moderate; heated source ~60-75 C)",
+"confidence": "measured"
+},
+{
+"name": "thermal_window",
+"score": 0.0,
+"evidence": "Process cap 350 C exceeds decomposition onset 200 C",
+"confidence": "measured"
+},
+{
+"name": "surface_reactivity",
+"score": 0.72,
+"evidence": "Ligand-exchange reactivity estimated for 'alkylamide' ligands with H2O (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.95,
+"evidence": "Steric self-limiting estimated from 'alkylamide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.631,
+"evidence": "Residue watch: carbon fraction 62%",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "hydrocarbon/amine byproducts, benign",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Ti; no forbidden elements.",
+"confidence": "measured"
+}
+],
+"warnings": [
+"Hazards: moisture sensitive"
+],
+"recommended_next_step": "Borderline: run UMA on the weakest component before committing GPU/DFT budget; consider a co-reactant swap.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+}
+],
+"warnings": [],
+"model_provenance": {
+"compute_backend": "local-descriptors",
+"model_name": null,
+"replicate_model": null,
+"notes": "Fast descriptor scoring. Pass use_ml_potential=true with fairchem-core installed (or a deployed Replicate model) for real UMA atomistic energies."
+},
+"billing": null
+},
+"W": {
+"film": "W",
+"co_reactant": "B2H6",
+"ranked_candidates": [
+{
+"name": "WCl5",
+"formula": "WCl5",
+"molecular_weight": 361.09,
+"film_element": "W",
+"overall_score": 0.765,
+"components": [
+{
+"name": "delivery",
+"score": 0.716,
+"evidence": "MW=361.1 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.85,
+"evidence": "Thermal stability estimated from ligand class 'halide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.74,
+"evidence": "Ligand-exchange reactivity estimated for 'halide' ligands with B2H6 (reductant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.671,
+"evidence": "Steric self-limiting estimated from 'halide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.85,
+"evidence": "Residue watch: chlorine residue",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.65,
+"evidence": "HCl byproduct, mildly corrosive",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers W; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "WF6",
+"formula": "WF6",
+"molecular_weight": 297.828,
+"film_element": "W",
+"overall_score": 0.757,
+"components": [
+{
+"name": "delivery",
+"score": 1.0,
+"evidence": "Source/bubbler ~20 C (very high; gas/low-boiling liquid (bp ~17 C))",
+"confidence": "measured"
+},
+{
+"name": "thermal_window",
+"score": 0.667,
+"evidence": "Decomposition onset 400 C is 50 C above process cap",
+"confidence": "measured"
+},
+{
+"name": "surface_reactivity",
+"score": 0.74,
+"evidence": "Ligand-exchange reactivity estimated for 'halide' ligands with B2H6 (reductant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.686,
+"evidence": "Steric self-limiting estimated from 'halide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.75,
+"evidence": "Residue watch: fluorine residue/HF risk",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.45,
+"evidence": "HF byproduct etches oxides/Si",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers W; no forbidden elements.",
+"confidence": "measured"
+}
+],
+"warnings": [
+"Hazards: toxic, corrosive, HF byproduct"
+],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": true,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "WCl6",
+"formula": "WCl6",
+"molecular_weight": 396.54,
+"film_element": "W",
+"overall_score": 0.754,
+"components": [
+{
+"name": "delivery",
+"score": 0.652,
+"evidence": "MW=396.5 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.85,
+"evidence": "Thermal stability estimated from ligand class 'halide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.74,
+"evidence": "Ligand-exchange reactivity estimated for 'halide' ligands with B2H6 (reductant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.686,
+"evidence": "Steric self-limiting estimated from 'halide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.85,
+"evidence": "Residue watch: chlorine residue",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.65,
+"evidence": "HCl byproduct, mildly corrosive",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers W; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "W(CO)6",
+"formula": "W(CO)6",
+"molecular_weight": 351.9,
+"film_element": "W",
+"overall_score": 0.706,
+"components": [
+{
+"name": "delivery",
+"score": 0.633,
+"evidence": "MW=351.9 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.6,
+"evidence": "Thermal stability estimated from ligand class 'alkoxide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.613,
+"evidence": "Ligand-exchange reactivity estimated for 'alkoxide' ligands with B2H6 (reductant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.8,
+"evidence": "Steric self-limiting estimated from 'alkoxide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.723,
+"evidence": "Residue watch: carbon fraction 46%",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "hydrocarbon/amine byproducts, benign",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers W; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+}
+],
+"warnings": [],
+"model_provenance": {
+"compute_backend": "local-descriptors",
+"model_name": null,
+"replicate_model": null,
+"notes": "Fast descriptor scoring. Pass use_ml_potential=true with fairchem-core installed (or a deployed Replicate model) for real UMA atomistic energies."
+},
+"billing": null
+},
+"Ru": {
+"film": "Ru",
+"co_reactant": "O2 plasma",
+"ranked_candidates": [
+{
+"name": "RuCl3",
+"formula": "RuCl3",
+"molecular_weight": 207.42,
+"film_element": "Ru",
+"overall_score": 0.823,
+"components": [
+{
+"name": "delivery",
+"score": 0.996,
+"evidence": "MW=207.4 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.85,
+"evidence": "Thermal stability estimated from ligand class 'halide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.77,
+"evidence": "Ligand-exchange reactivity estimated for 'halide' ligands with O2 plasma (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.643,
+"evidence": "Steric self-limiting estimated from 'halide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.85,
+"evidence": "Residue watch: chlorine residue",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.65,
+"evidence": "HCl byproduct, mildly corrosive",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Ru; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "RuO4",
+"formula": "RuO4",
+"molecular_weight": 165.066,
+"film_element": "Ru",
+"overall_score": 0.783,
+"components": [
+{
+"name": "delivery",
+"score": 0.973,
+"evidence": "MW=165.1 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.55,
+"evidence": "Thermal stability estimated from ligand class 'unknown'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.6,
+"evidence": "Ligand-exchange reactivity estimated for 'unknown' ligands with O2 plasma (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.657,
+"evidence": "Steric self-limiting estimated from 'unknown' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 1.0,
+"evidence": "Clean elimination likely",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "Benign byproducts",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Ru; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Promote: run UMA adsorption-energy (oc20) on the hydroxylated target surface to confirm chemisorption, then a single DFT check.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "Ru3(CO)12",
+"formula": "Ru3(CO)12",
+"molecular_weight": 639.33,
+"film_element": "Ru",
+"overall_score": 0.608,
+"components": [
+{
+"name": "delivery",
+"score": 0.11,
+"evidence": "MW=639.3 g/mol (volatility estimated from molecular weight)",
+"confidence": "estimated"
+},
+{
+"name": "thermal_window",
+"score": 0.6,
+"evidence": "Thermal stability estimated from ligand class 'alkoxide'",
+"confidence": "estimated"
+},
+{
+"name": "surface_reactivity",
+"score": 0.642,
+"evidence": "Ligand-exchange reactivity estimated for 'alkoxide' ligands with O2 plasma (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.8,
+"evidence": "Steric self-limiting estimated from 'alkoxide' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.733,
+"evidence": "Residue watch: carbon fraction 44%",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "hydrocarbon/amine byproducts, benign",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Ru; no forbidden elements.",
+"confidence": "estimated"
+}
+],
+"warnings": [],
+"recommended_next_step": "Borderline: run UMA on the weakest component before committing GPU/DFT budget; consider a co-reactant swap.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+},
+{
+"name": "Ru(EtCp)2",
+"formula": "Ru(C2H5C5H4)2",
+"molecular_weight": 287.368,
+"film_element": "Ru",
+"overall_score": 0.605,
+"components": [
+{
+"name": "delivery",
+"score": 0.694,
+"evidence": "Source/bubbler ~75 C (moderate; liquid, heated source ~60-90 C)",
+"confidence": "measured"
+},
+{
+"name": "thermal_window",
+"score": 0.133,
+"evidence": "Process cap 350 C exceeds decomposition onset 300 C",
+"confidence": "measured"
+},
+{
+"name": "surface_reactivity",
+"score": 0.6,
+"evidence": "Ligand-exchange reactivity estimated for 'cyclopentadienyl' ligands with O2 plasma (oxidant)",
+"confidence": "estimated"
+},
+{
+"name": "self_limiting",
+"score": 0.9,
+"evidence": "Steric self-limiting estimated from 'cyclopentadienyl' ligand bulk",
+"confidence": "estimated"
+},
+{
+"name": "clean_ligand",
+"score": 0.44,
+"evidence": "Residue watch: carbon fraction 93%",
+"confidence": "estimated"
+},
+{
+"name": "byproduct",
+"score": 0.9,
+"evidence": "Benign byproducts",
+"confidence": "estimated"
+},
+{
+"name": "integration",
+"score": 0.9,
+"evidence": "Delivers Ru; no forbidden elements.",
+"confidence": "measured"
+}
+],
+"warnings": [
+"Hazards: air sensitive"
+],
+"recommended_next_step": "Borderline: run UMA on the weakest component before committing GPU/DFT budget; consider a co-reactant swap.",
+"is_known_recipe": false,
+"origin": "input",
+"ml_energy_ev": null,
+"ml_calls": []
+}
+],
+"warnings": [],
+"model_provenance": {
+"compute_backend": "local-descriptors",
+"model_name": null,
+"replicate_model": null,
+"notes": "Fast descriptor scoring. Pass use_ml_potential=true with fairchem-core installed (or a deployed Replicate model) for real UMA atomistic energies."
+},
+"billing": null
+}
+}

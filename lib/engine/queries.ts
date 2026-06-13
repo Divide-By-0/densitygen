@@ -1,11 +1,13 @@
 import { cache } from "react";
 import { screenPrecursors } from "./client";
+import { cachedScreen } from "./cache";
 import { resolveFilm } from "../data/precursors";
 import type { ScreenResponse } from "./types";
 
 export interface ScorecardResult {
   film: string; // the backend-supported film we screened
   response: ScreenResponse;
+  source: "live" | "cached";
 }
 
 /**
@@ -24,11 +26,11 @@ export const getScorecard = cache(
         candidates: fs.candidates,
         use_ml_potential: useMl,
       });
-      return { film: fs.film, response };
+      return { film: fs.film, response, source: "live" };
     } catch {
-      // ML path can be slow on the free Space — retry once without it.
-      if (useMl) return getScorecard(formula, false);
-      return null;
+      // Backend down/slow → serve the bundled real snapshot so the demo holds.
+      const snap = cachedScreen(fs.film);
+      return snap ? { film: fs.film, response: snap, source: "cached" } : null;
     }
   },
 );
