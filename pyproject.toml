@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "densitygen"
+version = "0.1.0"
+description = "DensityGen: ML-accelerated ALD precursor screening for chemists"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.0",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+# Hosted ML-potential compute (UMA / MACE) is called through Replicate.
+replicate = ["replicate>=1.0"]
+# Real local ML-potential compute. UMA (fairchem) is the primary engine; CHGNet
+# is the ungated fallback that runs without HuggingFace gated access; ase builds
+# the 3D structures both consume.
+ml = ["fairchem-core>=2.0", "ase>=3.23", "chgnet>=0.3"]
+# Optional richer cheminformatics. The tool runs without these; they only
+# upgrade descriptor quality when present.
+chem = ["rdkit>=2023.9"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+ald-screen = "densitygen.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
