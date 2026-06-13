@@ -15,7 +15,10 @@ dependencies = [
 
 [project.optional-dependencies]
 # Hosted ML-potential compute (UMA / MACE) is called through Replicate.
-replicate = ["replicate>=1.0"]
+replicate = ["replicate>=1.0", "ase>=3.23"]
+# Public web app with remote-only real simulation. Does not install local torch
+# MLIP stacks; those stay behind the `ml` extra.
+web = ["fastapi>=0.110", "uvicorn[standard]>=0.27", "replicate>=1.0", "ase>=3.23"]
 # Real local ML-potential compute. UMA (fairchem) is the primary engine; CHGNet
 # is the ungated fallback that runs without HuggingFace gated access; ase builds
 # the 3D structures both consume.
@@ -23,7 +26,7 @@ ml = ["fairchem-core>=2.0", "ase>=3.23", "chgnet>=0.3"]
 # Optional richer cheminformatics. The tool runs without these; they only
 # upgrade descriptor quality when present.
 chem = ["rdkit>=2023.9"]
-dev = ["pytest>=7.0"]
+dev = ["pytest>=7.0", "fastapi>=0.110", "httpx>=0.25", "ase>=3.23"]
 
 [project.scripts]
 ald-screen = "densitygen.cli:main"
