@@ -93,6 +93,7 @@ class DesignIn(BaseModel):
     co_reactant: str | None = None
     temperature_max_c: float | None = None
     top_n: int = 10
+    use_ml_potential: bool = False
 
 
 # ---- metadata for the UI --------------------------------------------------
@@ -179,10 +180,14 @@ def api_screen(body: ScreenIn):
 
 @app.post("/api/design")
 def api_design(body: DesignIn):
+    # Inverse design escalates only its top descriptor-ranked survivors to the ML
+    # potential (design()'s own uma_top_k cap), so running the model here is cheap
+    # and safe to expose. When no real backend is reachable, design() degrades to
+    # descriptors with a warning -- no hard error needed.
     resp = design(
         film=body.film, co_reactant=default_co_reactant(body.film, body.co_reactant),
         temperature_max_c=body.temperature_max_c, top_n=min(body.top_n, 20),
-        use_ml_potential=False)
+        use_ml_potential=body.use_ml_potential)
     return JSONResponse(resp.model_dump())
 
 
@@ -251,15 +256,16 @@ def _opt_int(v: str | None, default: int) -> int:
 @app.get("/viz", response_class=HTMLResponse)
 def viz(film: str = "W", mode: str = "screen", co_reactant: str | None = None,
         temperature_max_c: str | None = None, forbidden: str = "",
-        candidates: str = "", top_n: str | None = None):
+        candidates: str = "", top_n: str | None = None, real: str | None = None):
     """Render the rich DataCore dashboard for a screening or design run."""
     co = default_co_reactant(film, co_reactant or None)
     tmax = _opt_float(temperature_max_c)
+    use_ml = str(real).lower() in ("1", "true", "yes", "on")
     forbid = [e.strip() for e in forbidden.split(",") if e.strip()]
     if mode == "design":
         resp = design(film=film, co_reactant=co, temperature_max_c=tmax,
                       forbidden_elements=forbid, top_n=_opt_int(top_n, 12),
-                      use_ml_potential=False)
+                      use_ml_potential=use_ml)
         payload = response_to_payload(resp, request=None, mode="design", api_url="/dc")
     else:
         cand_names = [c.strip() for c in candidates.split(",") if c.strip()] or ["WF6"]

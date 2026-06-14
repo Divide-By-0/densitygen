@@ -128,6 +128,11 @@
         <div class="field" style="max-width:170px"><label>Max temp (°C)</label><input id="d-temp" type="number" placeholder="e.g. 400"/></div>
         <div class="field" style="max-width:150px"><label>Propose top</label><input id="d-topn" type="number" value="10"/></div>
       </div>
+      <label class="toggle">
+        <input id="d-real" type="checkbox"/>
+        <span><b id="sim-title-d">Real simulation: ML interatomic potential</b>
+          <small id="sim-note-d">Opt-in only. Descriptor-triages every proposal, then runs the ML potential on the top survivors.</small></span>
+      </label>
       <div style="margin-top:14px"><button class="btn-primary" id="d-run">Propose precursors →</button></div>
     </div>
     <div id="d-out"></div>
@@ -209,24 +214,29 @@ async function loadMeta(){
   $('#s-presets').innerHTML='';
   presets.forEach(([label,p])=>{const b=el('span','pill',label);b.onclick=()=>applyPreset(p);$('#s-presets').appendChild(b);});
   if(META.simulation){
-    const s=META.simulation;
-    const rb=s.real_backend;
-    const title=$('#sim-title'), note=$('#sim-note'), real=$('#s-real');
-    if(rb==='uma-replicate'){
-      title.textContent='Real simulation: hosted UMA on '+s.hardware;
-      note.textContent=`Opt-in only. Max ${s.max_real_candidates} candidates. Estimated at $${s.rate_usd_per_second.toFixed(6)}/sec of GPU.`;
-    } else if(rb==='chgnet'){
-      title.textContent='Real simulation: CHGNet (local, free)';
-      note.textContent=`Opt-in only. Max ${s.max_real_candidates} candidates. Real ML-potential energies on the server CPU — CHGNet is a materials potential, so molecular values are a real-but-proxy estimate.`;
-    } else if(rb){
-      title.textContent='Real simulation: '+rb;
-      note.textContent=`Opt-in only. Max ${s.max_real_candidates} candidates. Real ML interatomic-potential energies on the server.`;
-    } else {
-      // No real engine on this server — keep the toggle honest instead of erroring on submit.
-      title.textContent='Real simulation: unavailable on this server';
-      note.textContent='Descriptor scoring only. Deploy with the chgnet engine, or set DENSITYGEN_UMA_MODEL + REPLICATE_API_TOKEN for hosted UMA.';
-      real.checked=false; real.disabled=true;
-    }
+    // Same backend-aware copy on both the screen and design toggles.
+    applySimCopy('#sim-title','#sim-note','#s-real', `Max ${META.simulation.max_real_candidates} candidates. `);
+    applySimCopy('#sim-title-d','#sim-note-d','#d-real', 'Runs on the top descriptor-ranked survivors. ');
+  }
+}
+function applySimCopy(titleSel, noteSel, toggleSel, scope){
+  const s=META.simulation, rb=s.real_backend;
+  const title=$(titleSel), note=$(noteSel), real=$(toggleSel);
+  if(!title) return;
+  if(rb==='uma-replicate'){
+    title.textContent='Real simulation: hosted UMA on '+s.hardware;
+    note.textContent=`Opt-in only. ${scope}Estimated at $${s.rate_usd_per_second.toFixed(6)}/sec of GPU.`;
+  } else if(rb==='chgnet'){
+    title.textContent='Real simulation: CHGNet (local, free)';
+    note.textContent=`Opt-in only. ${scope}Real ML-potential energies on the server CPU — CHGNet is a materials potential, so molecular values are a real-but-proxy estimate.`;
+  } else if(rb){
+    title.textContent='Real simulation: '+rb;
+    note.textContent=`Opt-in only. ${scope}Real ML interatomic-potential energies on the server.`;
+  } else {
+    // No real engine on this server — keep the toggle honest instead of erroring on submit.
+    title.textContent='Real simulation: unavailable on this server';
+    note.textContent='Descriptor scoring only. Deploy with the chgnet engine, or set DENSITYGEN_UMA_MODEL + REPLICATE_API_TOKEN for hosted UMA.';
+    real.checked=false; real.disabled=true;
   }
 }
 function defaultCoFor(film){
@@ -387,8 +397,9 @@ async function runScreen(){
 }
 async function runDesign(){
   const co=$('#d-co').value||'', temp=$('#d-temp').value||'', topn=+$('#d-topn').value||10;
-  const qs=new URLSearchParams({mode:'design',film:$('#d-film').value,co_reactant:co,temperature_max_c:temp,top_n:topn});
-  const rawBody={film:$('#d-film').value,co_reactant:co||null,temperature_max_c:temp?+temp:null,top_n:topn};
+  const real=$('#d-real').checked;
+  const qs=new URLSearchParams({mode:'design',film:$('#d-film').value,co_reactant:co,temperature_max_c:temp,top_n:topn,real:real?'1':'0'});
+  const rawBody={film:$('#d-film').value,co_reactant:co||null,temperature_max_c:temp?+temp:null,top_n:topn,use_ml_potential:real};
   renderDashboard('#d-out', qs, rawBody, 'design');
 }
 async function loadRace(){
