@@ -207,22 +207,41 @@ def _dc_page(payload: dict) -> str:
     return html
 
 
+def _opt_float(v: str | None) -> float | None:
+    # REASON: /viz takes its params from the query string, and the UI sends the
+    # raw form value -- an empty field arrives as `temperature_max_c=` (""), which
+    # a `float` query param rejects with a 422. Treat blank/garbage as "unset".
+    try:
+        return float(v) if v not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _opt_int(v: str | None, default: int) -> int:
+    try:
+        return int(v) if v not in (None, "") else default
+    except (TypeError, ValueError):
+        return default
+
+
 @app.get("/viz", response_class=HTMLResponse)
 def viz(film: str = "W", mode: str = "screen", co_reactant: str | None = None,
-        temperature_max_c: float | None = None, forbidden: str = "",
-        candidates: str = "", top_n: int = 12):
+        temperature_max_c: str | None = None, forbidden: str = "",
+        candidates: str = "", top_n: str | None = None):
     """Render the rich DataCore dashboard for a screening or design run."""
-    co = default_co_reactant(film, co_reactant)
+    co = default_co_reactant(film, co_reactant or None)
+    tmax = _opt_float(temperature_max_c)
     forbid = [e.strip() for e in forbidden.split(",") if e.strip()]
     if mode == "design":
-        resp = design(film=film, co_reactant=co, temperature_max_c=temperature_max_c,
-                      forbidden_elements=forbid, top_n=top_n, use_ml_potential=False)
+        resp = design(film=film, co_reactant=co, temperature_max_c=tmax,
+                      forbidden_elements=forbid, top_n=_opt_int(top_n, 12),
+                      use_ml_potential=False)
         payload = response_to_payload(resp, request=None, mode="design", api_url="/dc")
     else:
         cand_names = [c.strip() for c in candidates.split(",") if c.strip()] or ["WF6"]
         req = ScreeningRequest(
             film=film, candidates=_coerce_candidates(cand_names), co_reactant=co,
-            temperature_max_c=temperature_max_c, forbidden_elements=forbid,
+            temperature_max_c=tmax, forbidden_elements=forbid,
             use_ml_potential=False)
         resp = screen(req)
         payload = response_to_payload(resp, request=req, mode="screen", api_url="/dc")
