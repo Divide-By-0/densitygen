@@ -1,0 +1,20 @@
+# Cog spec for an UNGATED real ML-interatomic-potential on Replicate: CHGNet.
+#
+# Why CHGNet (not UMA) for the hosted public model: UMA's weights are gated on
+# HuggingFace and require per-account approval, so a hosted UMA model 403s at
+# cold start unless the account is authorized. CHGNet ships its weights inside
+# the pip package -> it runs anywhere, no gated download. We run it on CPU: the
+# precursor structures are tiny (≤ ~30 atoms), so a CPU prediction is a few
+# seconds and costs fractions of a cent -- keeps the public demo cheap.
+#
+# Deploy:
+#   cd deploy/chgnet && cog login && cog push r8.im/divide-by-0/densitygen-chgnet
+build:
+  gpu: false
+  python_version: "3.11"
+  python_packages:
+    - "torch==2.4.1"
+    - "chgnet==0.4.2"
+    - "ase==3.23.0"
+    - "numpy<2.0"
+predict: "predict.py:Predictor"

@@ -116,8 +116,19 @@ class MLPotentialClient:
         import replicate
 
         client = replicate.Client(api_token=self.token)
+        # Resolve the model ref into the right create kwarg. The official-model
+        # endpoint (model="owner/name") 404s on replicate 1.0.x for freshly
+        # pushed Cog models, but version=<hash> works reliably -- so prefer it.
+        # Accepts "owner/name:<hash>", a bare "<hash>", or plain "owner/name".
+        ref = self.model
+        if ":" in ref:
+            create_kwargs = {"version": ref.rsplit(":", 1)[1]}
+        elif "/" not in ref:
+            create_kwargs = {"version": ref}
+        else:
+            create_kwargs = {"model": ref}
         prediction = client.predictions.create(
-            model=self.model,
+            **create_kwargs,
             input={"xyz": xyz, "task": task, "relax": relax},
             wait=True,
         )
