@@ -108,8 +108,8 @@
       <div class="pills" id="s-presets"></div>
       <label class="toggle">
         <input id="s-real" type="checkbox"/>
-        <span><b>Real simulation: Replicate UMA on A100</b>
-          <small id="sim-note">Opt-in only. Builds real ASE molecules/slabs, calls UMA task heads, and estimates cost from prediction runtime.</small></span>
+        <span><b id="sim-title">Real simulation: ML interatomic potential</b>
+          <small id="sim-note">Opt-in only. Builds real ASE molecules/slabs and computes ML-potential energies.</small></span>
       </label>
       <div style="margin-top:14px"><button class="btn-primary" id="s-run">Screen candidates →</button></div>
     </div>
@@ -189,9 +189,16 @@ let META=null;
 async function loadMeta(){
   META = await (await fetch('/api/meta')).json();
   const films = META.films.map(f=>`<option value="${f.formula}">${f.formula} — ${f.name} (${f.kind})</option>`).join('');
-  const cos = `<option value="">(none)</option>`+META.co_reactants.map(c=>`<option>${c.name}</option>`).join('');
+  const coNames = [...new Set([
+    ...META.co_reactants.map(c=>c.name),
+    ...META.films.flatMap(f=>f.co_reactants||[])
+  ])];
+  const cos = `<option value="">auto: film default</option>`+coNames.map(c=>`<option>${c}</option>`).join('');
   $('#s-film').innerHTML=films; $('#d-film').innerHTML=films;
   $('#s-co').innerHTML=cos; $('#d-co').innerHTML=cos;
+  syncCo('#s-film','#s-co',true); syncCo('#d-film','#d-co',true);
+  $('#s-film').onchange=()=>syncCo('#s-film','#s-co',true);
+  $('#d-film').onchange=()=>syncCo('#d-film','#d-co',true);
   // presets
   const presets=[
     ['WF₆→W demo',{film:'W',co:'B2H6',temp:350,cands:'WF6, WCl6, W(CO)6, TMA'}],
@@ -203,8 +210,33 @@ async function loadMeta(){
   presets.forEach(([label,p])=>{const b=el('span','pill',label);b.onclick=()=>applyPreset(p);$('#s-presets').appendChild(b);});
   if(META.simulation){
     const s=META.simulation;
-    $('#sim-note').textContent=`Opt-in only. Max ${s.max_real_candidates} candidates. Estimated on ${s.hardware} at $${s.rate_usd_per_second.toFixed(6)}/sec.`;
+    const rb=s.real_backend;
+    const title=$('#sim-title'), note=$('#sim-note'), real=$('#s-real');
+    if(rb==='uma-replicate'){
+      title.textContent='Real simulation: hosted UMA on '+s.hardware;
+      note.textContent=`Opt-in only. Max ${s.max_real_candidates} candidates. Estimated at $${s.rate_usd_per_second.toFixed(6)}/sec of GPU.`;
+    } else if(rb==='chgnet'){
+      title.textContent='Real simulation: CHGNet (local, free)';
+      note.textContent=`Opt-in only. Max ${s.max_real_candidates} candidates. Real ML-potential energies on the server CPU — CHGNet is a materials potential, so molecular values are a real-but-proxy estimate.`;
+    } else if(rb){
+      title.textContent='Real simulation: '+rb;
+      note.textContent=`Opt-in only. Max ${s.max_real_candidates} candidates. Real ML interatomic-potential energies on the server.`;
+    } else {
+      // No real engine on this server — keep the toggle honest instead of erroring on submit.
+      title.textContent='Real simulation: unavailable on this server';
+      note.textContent='Descriptor scoring only. Deploy with the chgnet engine, or set DENSITYGEN_UMA_MODEL + REPLICATE_API_TOKEN for hosted UMA.';
+      real.checked=false; real.disabled=true;
+    }
   }
+}
+function defaultCoFor(film){
+  const f = META && META.films.find(x=>x.formula===film);
+  return f && f.default_co_reactant ? f.default_co_reactant : '';
+}
+function syncCo(filmSel, coSel, force=false){
+  const co = $(coSel);
+  const next = defaultCoFor($(filmSel).value);
+  if(force || !co.value) co.value = next;
 }
 function applyPreset(p){
   $('#s-film').value=p.film; $('#s-co').value=p.co||''; $('#s-temp').value=p.temp||'';

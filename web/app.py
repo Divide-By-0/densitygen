@@ -24,7 +24,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from densitygen.compute import MLPotentialClient, REPLICATE_HARDWARE, REPLICATE_RATE_USD_PER_SECOND
+import importlib.util
+from densitygen.compute import get_backend, REPLICATE_HARDWARE, REPLICATE_RATE_USD_PER_SECOND
 from densitygen.data import CO_REACTANTS, FILMS, KNOWN_PRECURSORS, KNOWN_RECIPES, lookup_film
 from densitygen.design import design
 from densitygen.interconnects import (
@@ -37,6 +38,25 @@ HERE = Path(__file__).parent
 VIZ_ASSETS = Path(__import__("densitygen").__file__).parent / "viz_assets"
 app = FastAPI(title="DensityGen", docs_url="/api/docs")
 MAX_REAL_CANDIDATES = 4
+
+
+@lru_cache(maxsize=1)
+def _installed_real_backend() -> str | None:
+    """Name of the best real ML-potential backend installed on this server.
+
+    Uses `find_spec` (and env, for the hosted route) so it never imports torch
+    at startup -- it only reports what *could* run, matching get_backend()'s
+    preference order. The actual engine is loaded lazily on the first real call.
+    """
+    if os.environ.get("REPLICATE_API_TOKEN") and os.environ.get("DENSITYGEN_UMA_MODEL"):
+        return "uma-replicate"
+    if importlib.util.find_spec("fairchem") is not None:
+        return "uma-local"
+    if importlib.util.find_spec("mace") is not None:
+        return "mace-mp-0"
+    if importlib.util.find_spec("chgnet") is not None:
+        return "chgnet"
+    return None
 
 
 def default_co_reactant(film: str, given: str | None) -> str | None:
@@ -104,6 +124,9 @@ def meta():
             "replicate_configured": bool(
                 os.environ.get("REPLICATE_API_TOKEN") and os.environ.get("DENSITYGEN_UMA_MODEL")
             ),
+            # Which real ML-potential backend is actually available, so the UI can
+            # show honest copy (CHGNet = local/free/proxy vs hosted UMA = $/sec).
+            "real_backend": _installed_real_backend(),
         },
     }
 
@@ -117,15 +140,16 @@ def _real_backend_or_error(body: ScreenIn):
             {"error": f"Real simulation is capped at {MAX_REAL_CANDIDATES} candidates per call."},
             status_code=400,
         )
-    if not os.environ.get("DENSITYGEN_UMA_MODEL"):
+    # Use the full backend chain (local UMA -> hosted UMA on Replicate -> MACE ->
+    # CHGNet). Real simulation works whenever ANY real engine is reachable -- it
+    # no longer hard-requires the Replicate UMA model. CHGNet ships its weights in
+    # the pip package, so the hosted demo runs real ML-potential energies offline.
+    backend = get_backend()
+    if backend is None:
         return JSONResponse(
-            {"error": "Real simulation requires DENSITYGEN_UMA_MODEL on the server."},
-            status_code=503,
-        )
-    backend = MLPotentialClient()
-    if not backend.available:
-        return JSONResponse(
-            {"error": "Real simulation requires REPLICATE_API_TOKEN and the replicate package."},
+            {"error": "No ML-potential backend is available on this server. "
+                      "Install the `chgnet` engine (ungated, offline), or set "
+                      "DENSITYGEN_UMA_MODEL + REPLICATE_API_TOKEN for hosted UMA."},
             status_code=503,
         )
     return backend
