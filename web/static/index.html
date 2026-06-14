@@ -248,29 +248,51 @@ function parseCands(str){
   });
 }
 function bar(v){const b=el('div','bar');b.appendChild(el('i',null,''));b.firstChild.style.width=(v*100).toFixed(0)+'%';return b;}
-function flowChart(){
-  const labels=[
-    ['Candidate','parse formula / known DB'],
-    ['ASE molecule','build real atoms'],
-    ['Film slab','construct surface'],
-    ['Replicate UMA','A100 prediction'],
-    ['Adsorption E','E(system)-E(slab)-E(mol)'],
-    ['Scorecard','rank with provenance'],
-  ];
+// Pipeline animation for real-simulation runs. The single network call does
+// every server step (build → UMA → score) before returning, so we can't stream
+// per-step progress live. Instead: while the request is in flight we show ONE
+// non-looping "in progress" pulse (not a 6-step carousel), and once the response
+// arrives we replay the pipeline EXACTLY ONCE, timing each step to the real
+// latency the API reported in resp.billing.calls[].predict_time_s. So the
+// animation reflects when the API actually did each step, and never loops.
+function simFlow(){
   const wrap=el('div','panel flow');
-  wrap.appendChild(el('h3',null,'Running real atomistic simulation'));
-  wrap.appendChild(el('p','muted','This run is calling the configured Replicate UMA model. Descriptor-only mode skips these GPU steps.'));
-  const line=el('div','flow-line');
-  labels.forEach(([a,b],i)=>line.appendChild(el('div','flow-step'+(i===0?' active':''),`<b>${a}</b>${b}`)));
-  wrap.appendChild(line);
-  let i=0;
-  const timer=setInterval(()=>{
-    const steps=line.querySelectorAll('.flow-step');
-    steps.forEach(s=>s.classList.remove('active'));
-    steps[i%steps.length].classList.add('active');
-    i++;
-  },800);
-  return {node:wrap, stop:()=>clearInterval(timer)};
+  wrap.appendChild(el('h3',null,'Real atomistic simulation'));
+  wrap.appendChild(el('p','muted','Calling the configured Replicate UMA model (A100). Each step below is timed to the real API latency once the run returns.'));
+  const line=el('div','flow-line'); line.style.gridTemplateColumns='1fr';
+  const live=el('div','flow-step active','<b>Replicate UMA</b>A100 prediction in progress…');
+  line.appendChild(live); wrap.appendChild(line);
+  let cancelled=false;
+  return {
+    node:wrap,
+    stop(){ cancelled=true; },
+    // Replay the measured pipeline once. Resolves when the (single) pass finishes.
+    async replay(billing, wallMs){
+      if(cancelled) return;
+      const calls=(billing&&billing.calls)||[];
+      // Local (un-timed) work = wall clock minus the summed UMA predict time.
+      const predictTotal=calls.reduce((s,c)=>s+(c.predict_time_s||0),0);
+      const localSecs=Math.max(0.15,((wallMs||predictTotal*1000)-predictTotal*1000)/1000);
+      const steps=[{label:'Build structures',sub:'ASE atoms + slab (local)',secs:localSecs,measured:false}];
+      calls.forEach(c=>steps.push({label:c.label||c.task,sub:`UMA ${c.task} · $${(c.cost_usd||0).toFixed(4)}`,secs:c.predict_time_s||0,measured:true}));
+      steps.push({label:'Scorecard',sub:'rank + provenance (local)',secs:0.2,measured:false});
+      line.style.gridTemplateColumns=`repeat(${Math.min(steps.length,6)},1fr)`;
+      line.innerHTML='';
+      const nodes=steps.map(s=>{
+        const n=el('div','flow-step',`<b>${s.label}</b>${s.sub}<div class="muted" style="margin-top:6px">${s.secs.toFixed(2)}s${s.measured?' · measured':' · local'}</div>`);
+        line.appendChild(n); return n;
+      });
+      // One forward pass; each step is shown for its real duration (per-step
+      // capped at 4s so a pathological call can't hang the UI).
+      for(let i=0;i<steps.length;i++){
+        if(cancelled) return;
+        nodes[i].classList.add('active');
+        await new Promise(r=>setTimeout(r, Math.min(4000, Math.max(120, steps[i].secs*1000))));
+        nodes[i].classList.remove('active');
+        nodes[i].style.borderColor='var(--acc2)';
+      }
+    },
+  };
 }
 function renderResp(resp){
   const wrap=el('div');
@@ -346,12 +368,14 @@ async function runScreen(){
   if(real){
     const max=(META&&META.simulation&&META.simulation.max_real_candidates)||4;
     if(parsed.length>max){$('#s-out').innerHTML=`<p class="warn">Real simulation is capped at ${max} candidates. Remove extras or turn off real simulation.</p>`;return;}
-    const flow=flowChart(); $('#s-out').innerHTML=''; $('#s-out').appendChild(flow.node);
+    const flow=simFlow(); $('#s-out').innerHTML=''; $('#s-out').appendChild(flow.node);
+    const t0=performance.now();
     try{
       const res=await fetch('/api/screen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rawBody)});
       const resp=await res.json();
-      flow.stop();
-      if(!res.ok){$('#s-out').innerHTML=`<div class="panel warn">⚠ ${resp.error||'Real simulation failed.'}</div>`;return;}
+      const wallMs=performance.now()-t0;
+      if(!res.ok){flow.stop();$('#s-out').innerHTML=`<div class="panel warn">⚠ ${resp.error||'Real simulation failed.'}</div>`;return;}
+      await flow.replay(resp.billing, wallMs);   // one pass, timed to real per-step latency
       $('#s-out').innerHTML=''; $('#s-out').appendChild(renderResp(resp));
     }catch(e){
       flow.stop(); $('#s-out').innerHTML=`<div class="panel warn">⚠ ${e.message}</div>`;
