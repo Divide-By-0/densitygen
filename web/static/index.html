@@ -60,6 +60,10 @@
   .flow-step b{display:block;color:var(--ink);font-size:13px;margin-bottom:4px}
   .flow-step.active{border-color:var(--acc2);box-shadow:0 0 0 1px rgba(124,246,195,.25),0 0 24px rgba(94,208,255,.16);color:#cdd7e5}
   .flow-step.active:after{content:"";position:absolute;left:10px;right:10px;bottom:8px;height:3px;border-radius:4px;background:linear-gradient(90deg,var(--acc),var(--acc2));animation:scan 1.1s infinite}
+  .flow-step.pending{opacity:.42}
+  .flow-step.done{border-color:var(--acc2)}
+  .flow-step.done b:before{content:"✓ ";color:var(--acc2)}
+  .flow-step .fs-stat{margin-top:6px}
   .billing{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0}
   .metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px}
   .metric span{display:block;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.3px}
@@ -224,13 +228,13 @@ function applySimCopy(titleSel, noteSel, toggleSel, scope){
   const title=$(titleSel), note=$(noteSel), real=$(toggleSel);
   if(!title) return;
   if(rb==='uma-replicate'){
-    title.textContent='Real simulation: hosted UMA on '+s.hardware;
+    title.textContent='Real simulation: build atoms → UMA on '+s.hardware+' → rank';
     note.textContent=`Opt-in only. ${scope}Estimated at $${s.rate_usd_per_second.toFixed(6)}/sec of GPU.`;
   } else if(rb==='chgnet'){
-    title.textContent='Real simulation: CHGNet (local, free)';
+    title.textContent='Real simulation: build atoms → CHGNet relax + energy → rank (local, free)';
     note.textContent=`Opt-in only. ${scope}Real ML-potential energies on the server CPU — CHGNet is a materials potential, so molecular values are a real-but-proxy estimate.`;
   } else if(rb){
-    title.textContent='Real simulation: '+rb;
+    title.textContent='Real simulation: build atoms → '+rb+' energy → rank';
     note.textContent=`Opt-in only. ${scope}Real ML interatomic-potential energies on the server.`;
   } else {
     // No real engine on this server — keep the toggle honest instead of erroring on submit.
@@ -265,44 +269,116 @@ function bar(v){const b=el('div','bar');b.appendChild(el('i',null,''));b.firstCh
 // arrives we replay the pipeline EXACTLY ONCE, timing each step to the real
 // latency the API reported in resp.billing.calls[].predict_time_s. So the
 // animation reflects when the API actually did each step, and never loops.
-function simFlow(){
+function simEngineLabel(){
+  const rb = META && META.simulation && META.simulation.real_backend;
+  return ({'chgnet':'CHGNet','uma-local':'UMA','uma-replicate':'UMA · A100','mace-mp-0':'MACE'})[rb] || 'ML potential';
+}
+// The real-simulation pipeline, shown as a flowchart UP FRONT: every step is
+// rendered (pending) before anything runs, then lights active -> done as the run
+// progresses, so the user watches it advance rather than seeing one spinner.
+function simFlow(opts){
+  opts=opts||{};
+  const engine=opts.engine||simEngineLabel();
+  const n=(opts.candidates||[]).length;
   const wrap=el('div','panel flow');
   wrap.appendChild(el('h3',null,'Real atomistic simulation'));
-  wrap.appendChild(el('p','muted','Calling the configured Replicate UMA model (A100). Each step below is timed to the real API latency once the run returns.'));
-  const line=el('div','flow-line'); line.style.gridTemplateColumns='1fr';
-  const live=el('div','flow-step active','<b>Replicate UMA</b>A100 prediction in progress…');
-  line.appendChild(live); wrap.appendChild(line);
+  wrap.appendChild(el('p','muted',`Pipeline for ${n} candidate${n===1?'':'s'} on the ${engine} engine — each step lights up as the run advances.`));
+  const steps=[
+    {label:'Resolve', sub:'name/formula → composition'},
+    {label:'Build 3D structure', sub:'ASE atoms'+(opts.metalFilm?' + metal slab':'')},
+    {label:engine+' relax + energy', sub:'LBFGS geometry · omol'},
+  ];
+  if(opts.metalFilm) steps.push({label:'Adsorption energy', sub:engine+' on the slab · oc20'});
+  steps.push({label:'Score & rank', sub:'7-axis scorecard + provenance'});
+  const computeIdx=2; // the heavy step that stays active until the run returns
+  const line=el('div','flow-line');
+  line.style.gridTemplateColumns=`repeat(${Math.min(steps.length,6)},1fr)`;
+  const nodes=steps.map(s=>{ const d=el('div','flow-step pending',
+    `<b>${s.label}</b>${s.sub}<div class="fs-stat muted">pending</div>`); line.appendChild(d); return d; });
+  wrap.appendChild(line);
   let cancelled=false;
+  const set=(i,cls,stat)=>{ const d=nodes[i]; if(!d) return;
+    d.classList.remove('pending','active','done'); d.classList.add(cls);
+    if(stat) d.querySelector('.fs-stat').textContent=stat; };
   return {
     node:wrap,
     stop(){ cancelled=true; },
-    // Replay the measured pipeline once. Resolves when the (single) pass finishes.
-    async replay(billing, wallMs){
-      if(cancelled) return;
-      const calls=(billing&&billing.calls)||[];
-      // Local (un-timed) work = wall clock minus the summed UMA predict time.
-      const predictTotal=calls.reduce((s,c)=>s+(c.predict_time_s||0),0);
-      const localSecs=Math.max(0.15,((wallMs||predictTotal*1000)-predictTotal*1000)/1000);
-      const steps=[{label:'Build structures',sub:'ASE atoms + slab (local)',secs:localSecs,measured:false}];
-      calls.forEach(c=>steps.push({label:c.label||c.task,sub:`UMA ${c.task} · $${(c.cost_usd||0).toFixed(4)}`,secs:c.predict_time_s||0,measured:true}));
-      steps.push({label:'Scorecard',sub:'rank + provenance (local)',secs:0.2,measured:false});
-      line.style.gridTemplateColumns=`repeat(${Math.min(steps.length,6)},1fr)`;
-      line.innerHTML='';
-      const nodes=steps.map(s=>{
-        const n=el('div','flow-step',`<b>${s.label}</b>${s.sub}<div class="muted" style="margin-top:6px">${s.secs.toFixed(2)}s${s.measured?' · measured':' · local'}</div>`);
-        line.appendChild(n); return n;
-      });
-      // One forward pass; each step is shown for its real duration (per-step
-      // capped at 4s so a pathological call can't hang the UI).
-      for(let i=0;i<steps.length;i++){
+    // Sweep the cheap leading steps, then leave the compute step pulsing.
+    async start(){
+      for(let i=0;i<computeIdx;i++){
         if(cancelled) return;
-        nodes[i].classList.add('active');
-        await new Promise(r=>setTimeout(r, Math.min(4000, Math.max(120, steps[i].secs*1000))));
-        nodes[i].classList.remove('active');
-        nodes[i].style.borderColor='var(--acc2)';
+        set(i,'active','running…');
+        await new Promise(r=>setTimeout(r,500));
+        set(i,'done','done · local');
       }
+      if(!cancelled) set(computeIdx,'active', engine+' running…');
+    },
+    // Run returned: finish the compute step + everything downstream, with real
+    // timing (UMA billing) / energy counts where available.
+    finish(resp, wallMs){
+      const calls=(resp&&resp.billing&&resp.billing.calls)||[];
+      const predicted=calls.reduce((s,c)=>s+(c.predict_time_s||0),0);
+      const energies=((resp&&resp.ranked_candidates)||[]).filter(c=>c.ml_energy_ev!=null).length;
+      const t=predicted? predicted.toFixed(2)+'s · measured' : ((wallMs||0)/1000).toFixed(2)+'s';
+      set(computeIdx,'done', t+(energies?` · ${energies} energ${energies===1?'y':'ies'}`:''));
+      for(let i=computeIdx+1;i<steps.length;i++) set(i,'done','done · local');
     },
   };
+}
+// ---- molecule rendering (2D ball-and-stick, ported from the design dashboard) -
+// Lays out a metal center + its ligands from the formula -- the same metal /
+// halide / homoleptic-organometallic decomposition the structure builder uses.
+const _ATOMC={O:'#B23B2E',N:'#3F6FB0',C:'#34332F',H:'#DCDAD2',F:'#5BA06B',Cl:'#4F9D69',Br:'#9A6A3B',I:'#7A4F9D',B:'#C9A24B',S:'#C2A23B',Si:'#9B8B6A',P:'#C77B3B'};
+const _LIGHT=new Set(['H','C','N','O','F','Cl','Br','I']);
+const _MONO=new Set(['O','F','Cl','Br','I','H']);
+const _POLY={CO:{C:1,O:1},CH3:{C:1,H:3},C2H5:{C:2,H:5},C5H5:{C:5,H:5},NMe2:{N:1,C:2,H:6},NEtMe:{N:1,C:3,H:8},OEt:{O:1,C:2,H:5},OtBu:{O:1,C:4,H:9}};
+const _COORD={CO:'C',CH3:'C',C2H5:'C',C5H5:'C',NMe2:'N',NEtMe:'N',OEt:'O',OtBu:'O'};
+function _parseFormula(f){
+  f=(f||'').replace(/\s/g,''); if(!f) return null;
+  const tok=f.match(/[A-Z][a-z]?|\d+|[()\[\]]/g); if(!tok||tok.join('')!==f) return null;
+  const stack=[{}]; let i=0;
+  while(i<tok.length){const t=tok[i];
+    if(t==='('||t==='[') stack.push({});
+    else if(t===')'||t===']'){const g=stack.pop(); let m=1; if(i+1<tok.length&&/^\d+$/.test(tok[i+1])) m=+tok[++i]; const top=stack[stack.length-1]; for(const e in g) top[e]=(top[e]||0)+g[e]*m;}
+    else if(/^\d+$/.test(t)) return null;
+    else {let c=1; if(i+1<tok.length&&/^\d+$/.test(tok[i+1])) c=+tok[++i]; const top=stack[stack.length-1]; top[t]=(top[t]||0)+c;}
+    i++;}
+  return stack.length===1?stack[0]:null;
+}
+function _decompose(counts){
+  const metals=Object.keys(counts).filter(e=>!_LIGHT.has(e));
+  if(metals.length!==1||counts[metals[0]]!==1) return null;
+  const metal=metals[0], rem={}; for(const e in counts) if(e!==metal) rem[e]=counts[e];
+  if(!Object.keys(rem).length) return null;
+  for(const key in _POLY){const sig=_POLY[key];
+    if(Object.keys(rem).sort().join()!==Object.keys(sig).sort().join()) continue;
+    let k=null,ok=true; for(const e in sig){ if(rem[e]%sig[e]){ok=false;break;} const kk=rem[e]/sig[e]; if(k===null)k=kk; else if(k!==kk){ok=false;break;} }
+    if(ok&&k>=1&&k<=8) return {metal,ligands:Array(k).fill(key)};
+  }
+  if(Object.keys(rem).every(e=>_MONO.has(e))){const ligs=[]; for(const e in rem) for(let j=0;j<rem[e];j++) ligs.push(e); if(ligs.length>=1&&ligs.length<=8) return {metal,ligands:ligs};}
+  return null;
+}
+function moleculeSVG(formula, S){
+  S=S||118; const counts=_parseFormula(formula); if(!counts) return null;
+  const dec=_decompose(counts); if(!dec) return null;
+  const ns='http://www.w3.org/2000/svg', cx=S/2, cy=S/2, R=S*0.31;
+  const svg=document.createElementNS(ns,'svg'); svg.setAttribute('viewBox',`0 0 ${S} ${S}`); svg.setAttribute('width','100%'); svg.setAttribute('height','100%');
+  const bonds=[], atoms=[{el:dec.metal,x:cx,y:cy,r:13,metal:true}];
+  const n=dec.ligands.length;
+  dec.ligands.forEach((lig,idx)=>{
+    const ang=-Math.PI/2 + 2*Math.PI*idx/n, vx=cx+Math.cos(ang)*R, vy=cy+Math.sin(ang)*R, ux=Math.cos(ang), uy=Math.sin(ang);
+    if(_MONO.has(lig)){ bonds.push([cx,cy,vx,vy]); atoms.push({el:lig,x:vx,y:vy,r:lig==='H'?5:8}); return; }
+    const coord=_COORD[lig], sig=_POLY[lig];
+    bonds.push([cx,cy,vx,vy]); atoms.push({el:coord,x:vx,y:vy,r:7});
+    const others=[]; for(const e in sig){const c=sig[e]-(e===coord?1:0); for(let z=0;z<c;z++) others.push(e);}
+    others.forEach((e,z)=>{const sp=(z-(others.length-1)/2)*0.55, ex=vx+ux*9+(-uy)*sp*9, ey=vy+uy*9+ux*sp*9;
+      bonds.push([vx,vy,ex,ey]); atoms.push({el:e,x:ex,y:ey,r:e==='H'?4:6.5});});
+  });
+  bonds.forEach(b=>{const l=document.createElementNS(ns,'line'); l.setAttribute('x1',b[0]);l.setAttribute('y1',b[1]);l.setAttribute('x2',b[2]);l.setAttribute('y2',b[3]); l.setAttribute('stroke','#C9C6C0');l.setAttribute('stroke-width','2.3');l.setAttribute('stroke-linecap','round'); svg.appendChild(l);});
+  atoms.forEach(a=>{const c=document.createElementNS(ns,'circle'); c.setAttribute('cx',a.x);c.setAttribute('cy',a.y);c.setAttribute('r',a.r); c.setAttribute('fill',a.metal?'#B45309':(_ATOMC[a.el]||'#7A776F')); c.setAttribute('stroke',a.el==='H'?'#b9b6ad':'rgba(0,0,0,.14)');c.setAttribute('stroke-width','1'); svg.appendChild(c);
+    if(a.r>=7){const t=document.createElementNS(ns,'text'); t.setAttribute('x',a.x);t.setAttribute('y',a.y+3);t.setAttribute('text-anchor','middle');t.setAttribute('font-size',a.metal?'11':'8');t.setAttribute('font-family','ui-monospace,monospace');t.setAttribute('fill','#fff');t.textContent=a.el; svg.appendChild(t);}
+  });
+  return svg;
 }
 function renderResp(resp){
   const wrap=el('div');
@@ -319,6 +395,8 @@ function renderResp(resp){
   (resp.warnings||[]).forEach(w=>wrap.appendChild(el('div','warn','⚠ '+w)));
   resp.ranked_candidates.forEach((c,i)=>{
     const card=el('div','card'+(i===0&&c.overall_score>0?' top':''));
+    const mol=moleculeSVG(c.formula||c.name, 118);
+    if(mol){ const fig=el('div'); fig.style.cssText='float:right;width:104px;height:104px;margin:2px 0 8px 12px;background:#FAF9F6;border:1px solid var(--line);border-radius:8px;padding:4px'; fig.appendChild(mol); card.appendChild(fig); }
     let tags='';
     if(c.is_known_recipe)tags+=`<span class="tag known">★ known recipe</span>`;
     if(c.origin==='proposed')tags+=`<span class="tag proposed">⚗ proposed</span>`;
@@ -378,15 +456,18 @@ async function runScreen(){
   if(real){
     const max=(META&&META.simulation&&META.simulation.max_real_candidates)||4;
     if(parsed.length>max){$('#s-out').innerHTML=`<p class="warn">Real simulation is capped at ${max} candidates. Remove extras or turn off real simulation.</p>`;return;}
-    const flow=simFlow(); $('#s-out').innerHTML=''; $('#s-out').appendChild(flow.node);
+    const filmKind=((META&&META.films||[]).find(f=>f.formula===$('#s-film').value)||{}).kind;
+    const flow=simFlow({engine:simEngineLabel(), candidates:parsed, metalFilm:filmKind==='metal'});
+    $('#s-out').innerHTML=''; $('#s-out').appendChild(flow.node);
+    flow.start();   // render all steps, then advance through them live
     const t0=performance.now();
     try{
       const res=await fetch('/api/screen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rawBody)});
       const resp=await res.json();
       const wallMs=performance.now()-t0;
       if(!res.ok){flow.stop();$('#s-out').innerHTML=`<div class="panel warn">⚠ ${resp.error||'Real simulation failed.'}</div>`;return;}
-      await flow.replay(resp.billing, wallMs);   // one pass, timed to real per-step latency
-      $('#s-out').innerHTML=''; $('#s-out').appendChild(renderResp(resp));
+      flow.finish(resp, wallMs);   // mark compute + downstream done, with real timing/energies
+      $('#s-out').appendChild(renderResp(resp));   // keep the completed flowchart above the results
     }catch(e){
       flow.stop(); $('#s-out').innerHTML=`<div class="panel warn">⚠ ${e.message}</div>`;
     }

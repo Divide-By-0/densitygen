@@ -50,12 +50,98 @@ def is_simple_metal_halide(comp: Composition) -> Optional[tuple[str, str, int]]:
     return None
 
 
+# Light (ligand) elements; anything else in a precursor is the metal center.
+_LIGHT = {"H", "C", "N", "O", "F", "Cl", "Br", "I"}
+
+# Homoleptic ligand fragments we can place: per-ligand element counts + the atom
+# that bonds the metal (carbonyls bond through C, amides through N, alkoxides
+# through O, alkyls through C). Matched against M(L)_k stoichiometry.
+_LIGAND_SIG: dict[str, tuple[dict, str]] = {
+    "CO":    ({"C": 1, "O": 1}, "C"),            # carbonyl  -> W(CO)6, Mo(CO)6, Ni(CO)4
+    "CH3":   ({"C": 1, "H": 3}, "C"),            # methyl    -> TMA Al(CH3)3
+    "C2H5":  ({"C": 2, "H": 5}, "C"),            # ethyl
+    "C5H5":  ({"C": 5, "H": 5}, "C"),            # cyclopentadienyl
+    "NMe2":  ({"N": 1, "C": 2, "H": 6}, "N"),    # dimethylamide -> TDMAH/TDMAT
+    "NEtMe": ({"N": 1, "C": 3, "H": 8}, "N"),    # ethylmethylamide -> TEMAH
+    "OEt":   ({"O": 1, "C": 2, "H": 5}, "O"),    # ethoxide
+    "OtBu":  ({"O": 1, "C": 4, "H": 9}, "O"),    # tert-butoxide -> Hf(OtBu)4
+    "H":     ({"H": 1}, "H"),                    # hydride
+}
+
+
+def _decompose_homoleptic(comp: Composition):
+    """If `comp` is one metal + k identical ligands (M(L)_k) we can place,
+    return (metal, k, ligand_key, coord_element). Else None."""
+    counts = {e: int(round(n)) for e, n in comp.counts.items() if n}
+    metals = [e for e in counts if e not in _LIGHT]
+    if len(metals) != 1 or counts[metals[0]] != 1:
+        return None
+    metal = metals[0]
+    rem = {e: counts[e] for e in counts if e != metal}
+    if not rem:
+        return None
+    for key, (sig, coord) in _LIGAND_SIG.items():
+        if set(rem) != set(sig):
+            continue
+        k = None
+        for e, per in sig.items():
+            if rem[e] % per:
+                k = None
+                break
+            kk = rem[e] // per
+            k = kk if k is None else (k if k == kk else -1)
+        if k and k > 0 and k in _GEOMETRY:
+            return metal, k, key, coord
+    return None
+
+
+def _frame(u):
+    """An orthonormal pair perpendicular to unit vector u."""
+    ax = (0.0, 0.0, 1.0) if abs(u[2]) < 0.9 else (1.0, 0.0, 0.0)
+    e1 = (u[1] * ax[2] - u[2] * ax[1], u[2] * ax[0] - u[0] * ax[2], u[0] * ax[1] - u[1] * ax[0])
+    n = math.sqrt(sum(c * c for c in e1)) or 1.0
+    e1 = tuple(c / n for c in e1)
+    e2 = (u[1] * e1[2] - u[2] * e1[1], u[2] * e1[0] - u[0] * e1[2], u[0] * e1[1] - u[1] * e1[0])
+    return e1, e2
+
+
+def _place_ligand(coord_sym, others, P, u):
+    """Place one ligand: coordinating atom at P, the rest fanned outward along u.
+
+    Coordinates are deliberately coarse but non-overlapping -- UMA/CHGNet relax
+    (LBFGS) before reporting an energy, so a sane connected guess is enough.
+    """
+    e1, e2 = _frame(u)
+    atoms = [(coord_sym, P)]
+    heavies = [s for s in others if s != "H"]
+    hs = [s for s in others if s == "H"]
+    # Linear special-case: a lone heavy partner (CO) sits straight out (M-C-O).
+    if heavies == ["O"] and coord_sym == "C" and not hs:
+        atoms.append(("O", tuple(P[i] + u[i] * 1.15 for i in range(3))))
+        return atoms
+    centers = []
+    base = tuple(P[i] + u[i] * 1.5 for i in range(3))
+    for i, s in enumerate(heavies):
+        ang = 2 * math.pi * i / max(1, len(heavies))
+        off = [(e1[j] * math.cos(ang) + e2[j] * math.sin(ang)) * 0.75 + u[j] * 0.35 * i for j in range(3)]
+        pos = tuple(base[j] + off[j] for j in range(3))
+        atoms.append((s, pos)); centers.append(pos)
+    if not centers:
+        centers = [tuple(P[i] + u[i] * 1.0 for i in range(3))]
+    for j, s in enumerate(hs):
+        c = centers[j % len(centers)]
+        ang = 2 * math.pi * j / max(1, len(hs)) + 0.6
+        off = [(e1[k] * math.cos(ang) + e2[k] * math.sin(ang)) * 0.95 + u[k] * 0.45 for k in range(3)]
+        atoms.append((s, tuple(c[k] + off[k] for k in range(3))))
+    return atoms
+
+
 def build_molecule(name: str, comp: Composition):
     """Return an ase.Atoms for a precursor, or None if we can't place it.
 
-    Strategy: (1) try ASE's built-in molecule database by name (covers H2O,
-    NH3, CO, CH4, ...); (2) build metal halides from coordination geometry;
-    (3) give up (None) for polyatomic-ligand organometallics.
+    Strategy: (1) ASE's built-in molecule database by name (H2O, NH3, CO, CH4,
+    ...); (2) metal halides MX_n from a coordination polyhedron; (3) homoleptic
+    organometallics M(L)_k (carbonyls, alkyls, amides, alkoxides); (4) give up.
     """
     try:
         from ase import Atoms
@@ -80,6 +166,26 @@ def build_molecule(name: str, comp: Composition):
             norm = math.sqrt(vx * vx + vy * vy + vz * vz) or 1.0
             positions.append((vx / norm * d, vy / norm * d, vz / norm * d))
             symbols.append(halo)
+        return Atoms(symbols=symbols, positions=positions)
+
+    # (3) Homoleptic organometallic M(L)_k -- carbonyls, alkyls, amides, alkoxides.
+    homo = _decompose_homoleptic(comp)
+    if homo is not None:
+        metal, k, key, coord = homo
+        d = _BOND.get(coord, 2.05)
+        symbols = [metal]
+        positions = [(0.0, 0.0, 0.0)]
+        sig = _LIGAND_SIG[key][0]
+        # the ligand's atoms minus its coordinating atom, as a flat element list
+        others = []
+        for el, cnt in sig.items():
+            others += [el] * (cnt - (1 if el == coord else 0))
+        for vx, vy, vz in _GEOMETRY[k]:
+            norm = math.sqrt(vx * vx + vy * vy + vz * vz) or 1.0
+            u = (vx / norm, vy / norm, vz / norm)
+            P = (u[0] * d, u[1] * d, u[2] * d)
+            for sym, pos in _place_ligand(coord, others, P, u):
+                symbols.append(sym); positions.append(pos)
         return Atoms(symbols=symbols, positions=positions)
 
     return None
